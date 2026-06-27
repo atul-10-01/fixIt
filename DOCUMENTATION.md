@@ -97,6 +97,31 @@ FixIt uses **industry-standard opaque session IDs** stored in an `httpOnly` cook
 
 ---
 
+## 🔒 Security, Privacy & Integrity Guardrails
+
+To protect user identities and prevent exploitation of gamified systems, FixIt includes four core backend protections:
+
+1. **Leaderboard Profile Sanitization**:
+   - **Risk**: Exposing private database keys, password hashes, or email addresses through public rank lists.
+   - **Protection**: The `/api/users` endpoint uses a whitelisting projection query (`PUBLIC_USER_FIELDS`), completely stripping out the user's `email`, internal `_id`, and `__v` fields before returning payload objects. Only public display stats, level, and badges are visible.
+
+2. **Anonymous Report Isolation**:
+   - **Risk**: Cross-referencing anonymous reports with database user tables through front-end network calls to identify whistleblowers.
+   - **Protection**:
+     - On creation, anonymous reports write public placeholder strings (`'Anonymous'` for reporter name, `null` for avatar).
+     - The real reporter's UID is kept privately in the database for backend checks.
+     - On retrieval, `GET /api/issues` sanitizes issues server-side, stripping the `reportedBy` UID entirely on anonymous items before the payload leaves the server.
+
+3. **Self-Verification Block on Anonymous Submissions**:
+   - **Risk**: Users bypass self-verification rules by marking their own issues anonymous, then validating them to gain points.
+   - **Protection**: Proximity verification checks the real authenticated user session against the hidden private `reportedBy` field directly on the server database, blocking self-verification regardless of the public anonymous flag.
+
+4. **Minimized Storage Footprint**:
+   - **Risk**: Local storage caching vulnerable to XSS inspection.
+   - **Protection**: Purged all active cache files for user accounts, leaderboard profiles, and session states from `localStorage`. A boot migration script auto-wipes legacy cache strings on page refresh.
+
+---
+
 ## 🌍 Real GPS Location
 
 FixIt now uses the browser **Geolocation API** for true geofenced proximity verification instead of hardcoded coordinates.

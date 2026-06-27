@@ -375,10 +375,24 @@ app.get("/api/auth/me", optionalAuth, (req: AuthRequest, res) => {
 });
 
 // 5. REST APIs for Issues
+// PUBLIC fields allowed on leaderboard — no email, no internal _id
+const PUBLIC_USER_FIELDS = 'uid displayName photoURL points level badges area joinedAt';
+
+// Strip reportedBy/reportedByName/reportedByAvatar from anonymous issues before sending to client
+function sanitizeIssueForClient(issue: any) {
+  const obj = issue.toObject ? issue.toObject() : { ...issue };
+  if (obj.anonymous) {
+    obj.reportedBy = null;
+    obj.reportedByName = 'Anonymous';
+    obj.reportedByAvatar = null;
+  }
+  return obj;
+}
+
 app.get("/api/issues", async (req, res) => {
   try {
     const list = await Issue.find().sort({ reportedAt: -1 });
-    res.json(list);
+    res.json(list.map(sanitizeIssueForClient));
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch issues." });
   }
@@ -395,8 +409,10 @@ app.post("/api/issues", requireAuth, validateBody(CreateIssueSchema), async (req
       id,
       status: 'reported',
       reportedBy: user.uid,
-      reportedByName: user.displayName,
-      reportedByAvatar: user.photoURL,
+      // For anonymous reports: store 'Anonymous' in public name/avatar fields.
+      // The real uid is kept privately in reportedBy for points & self-verification checks.
+      reportedByName: issueData.anonymous ? 'Anonymous' : user.displayName,
+      reportedByAvatar: issueData.anonymous ? null : user.photoURL,
       reportedAt: new Date(),
       verifications: [],
       verificationCount: 0,
@@ -406,7 +422,7 @@ app.post("/api/issues", requireAuth, validateBody(CreateIssueSchema), async (req
         {
           action: "reported",
           timestamp: new Date(),
-          details: `Issue recorded by citizen ${user.displayName}. AI pre-evaluated severity as ${issueData.severityScore}/10.`,
+          details: `Issue recorded${issueData.anonymous ? ' anonymously' : ` by citizen ${user.displayName}`}. AI pre-evaluated severity as ${issueData.severityScore}/10.`,
           automated: true
         }
       ],
@@ -452,7 +468,9 @@ app.put("/api/issues/:id/verify", requireAuth, validateBody(VerifyIssueSchema), 
       return;
     }
 
-    if (issue.reportedBy === user.uid && !issue.anonymous) {
+    // Block self-verification regardless of anonymous flag
+    // We compare the real UID server-side — anonymity is a display concern, not an auth bypass
+    if (issue.reportedBy === user.uid) {
       res.status(400).json({ error: "You cannot verify your own reported issue." });
       return;
     }
@@ -683,7 +701,11 @@ app.put("/api/issues/:id/resolve", requireAuth, validateBody(ResolveIssueSchema)
 
 app.get("/api/users", async (req, res) => {
   try {
-    const list = await User.find().sort({ points: -1 }).limit(10);
+    // Only return public leaderboard fields — never expose email or internal _id
+    const list = await User.find()
+      .sort({ points: -1 })
+      .limit(25)
+      .select(PUBLIC_USER_FIELDS);
     res.json(list);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch leaderboard." });

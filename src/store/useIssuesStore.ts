@@ -176,7 +176,6 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       const user = await issuesService.getMe();
       if (user) {
         set({ currentUser: user });
-        localStorage.setItem("fixit_current_user", JSON.stringify(user));
       }
       const remoteUsers = await issuesService.fetchLeaderboard();
       set({ users: remoteUsers });
@@ -206,7 +205,6 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
         const user = await issuesService.getMe();
         if (user) {
           set({ currentUser: user });
-          localStorage.setItem("fixit_current_user", JSON.stringify(user));
         }
         const remoteUsers = await issuesService.fetchLeaderboard();
         set({ users: remoteUsers });
@@ -295,7 +293,6 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
         const user = await issuesService.getMe();
         if (user) {
           set({ currentUser: user });
-          localStorage.setItem("fixit_current_user", JSON.stringify(user));
         }
         const remoteUsers = await issuesService.fetchLeaderboard();
         set({ users: remoteUsers });
