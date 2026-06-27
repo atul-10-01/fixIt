@@ -14,6 +14,8 @@ FixIt bridges this gap by combining:
 3. **Hyperlocal Neighborhood Engagement** (geofenced verification, adopting issues, and neighborhood-wide feeds).
 4. **An Autonomous Escalation Engine** (The "Agent") that monitors neglected reports, identifies repeat-offender "Chronic Zones", and flags duplicates.
 5. **Robust Gamification & Trust Metrics** (citizen helpfulness scores, levels, points, and badges) to incentivize active civic pride.
+6. **Real GPS Location Awareness** — live device coordinates for true geofenced proximity verification.
+7. **Enterprise-Grade Session Authentication** — opaque server-side sessions with instant revocation.
 
 ---
 
@@ -42,52 +44,158 @@ The application adopts the **"Bold Typography"** aesthetic paired with high-cont
                                         │
            ┌────────────────────────────┴────────────────────────────┐
            ▼                                                         ▼
-[ Single Page App (React 19) ]                              [ Local Data Storage ]
-   - Multi-step report form (compress/capture)                 - Offline Queue
-   - Interactive Map Canvas (Leaflet/SVG Map)                  - Hashed Anon Tokens
-   - Recharts Analytics Dashboard                              - User session settings
+[ Single Page App (React 19) ]                            [ Minimal LocalStorage ]
+   - Multi-step report form (compress/capture)              - Offline Queue (mutations)
+   - Interactive Map Canvas (Leaflet/SVG Map)               - GPS permission flag
+   - Recharts Analytics Dashboard                           - Offline-first issue cache
+   - Real GPS via Geolocation API
            │
            ▼
-[ Express + Vite Server proxying API ]
-   - Static file server
-   - Proxy handler to Gemini API (keeps secret key hidden server-side)
-   - Real-time Firestore local simulation / persistence engine
+[ Express + Vite Dev Server ]
+   - Static file server / Vite middleware in dev
+   - All API routes secured via Session ID middleware
+   - Zod request body validation on all mutating routes
+   - Gemini API proxy (keeps key hidden server-side)
+   - Google OAuth2 server-side callback handler
            │
            ▼
-[ Google Gemini API SDK ]
-   - analyzeImage (Gemini 2.0 Flash) -> AI categorization, severity, reasoning, impact
-   - writeComplaint (Gemini 2.0 Flash) -> Municipal Complaint Letter Generator
+[ MongoDB (Mongoose) ]
+   - issues      → civic reports, comments, verifications
+   - users       → profiles, points, level, badges
+   - sessions    → opaque session IDs with TTL auto-expiry
+           │
+           ▼
+[ Google Gemini 2.0 Flash API ]
+   - analyzeImage → AI categorization, severity 1-10, impact radius
+   - writeComplaint → Municipal Complaint Letter Generator
 ```
 
 ---
 
-## 💡 Feature Implementation Strategy (Real vs. Simulated)
+## 🔐 Authentication Architecture (Session-Based)
 
-To make a **flawless, highly reliable, and stunning demo** for the hackathon judges within our runtime container, we will employ a hybrid strategy of fully functioning production integrations and smart, realistic simulation environments:
+FixIt uses **industry-standard opaque session IDs** stored in an `httpOnly` cookie — the same approach used by Google, GitHub, and Stripe.
 
-| Feature | Scope Type | Implementation / Demonstration Approach |
+| Attribute | Detail |
+| :--- | :--- |
+| **Cookie name** | `fixit_sid` |
+| **Cookie value** | `crypto.randomUUID()` (256-bit random opaque ID) |
+| **Cookie flags** | `httpOnly`, `Secure` (in production), `SameSite=Lax` |
+| **Storage** | MongoDB `sessions` collection with TTL index (7-day expiry) |
+| **Logout** | Deletes session record from DB → cookie cleared → token unplayable immediately |
+| **Ban/Revoke** | Admin can delete session by UID → instant forced logout |
+
+### Why This Beats JWT for a Presentation
+
+| | JWT (Old) | Session ID (Current) |
 | :--- | :--- | :--- |
-| **Full Map View & Hotspots** | **Fully Implemented** | A fully interactive geographic simulation canvas. Since standard Google Maps API keys are not pre-configured, we'll build a highly functional custom-designed map overlay. It will display the active issue pins, density heatmaps, predictive hotspot zones, search filtering, and user distance calculators in a beautifully styled, high-fidelity custom SVG/Canvas coordinate layer representing key Indian city quadrants. |
-| **AI Multi-Step Report** | **Fully Implemented** | Real client-side image compression. The upload immediately calls our secure backend, which invokes the official Google Gemini API to analyze the image, classify category, calculate severity (1-10), estimate impact radius, and suggest municipal authorities. |
-| **Anonymity & Safety** | **Fully Implemented** | A toggle on the report form. Calculates SHA-256 hash of user ID + salt on the client. Saves report without identifiable data, but stores the token locally so the user can still edit/track their own submissions. Floating Legal Aid widget. |
-| **Before/After Slider** | **Fully Implemented** | Interactive CSS clip-path visual drag slider. Allows uploading a resolution proof photograph which enforces GPS proximity tolerance. |
-| **Complaint Letter Gen** | **Fully Implemented** | Securely calls Gemini via backend, summarizing issue stats, and returns a perfectly drafted formal letter inside a copyable/downloadable modal. |
-| **Social Amplification** | **Fully Implemented** | Custom Tweet Preview modal and pre-composed tweets targeting official municipal handles (e.g., `@BBMPCOMM`, `@mybmc`) based on a Indian city lookup database. |
-| **Offline-First Queue** | **Fully Implemented** | Captures internet status using standard browser listeners. Queues failed reports into `localStorage`, automatically pushing them to the database once connection returns, complete with navbar badges. |
-| **Autonomous Agent** | **Fully Implemented** | An interactive "Agent Control Panel" that lets judges trigger the agent loop manually or view its real-time autonomous log entries (resolving duplicates, upgrading chronic zones, flagging fake alerts). |
-| **Gamification & Leaderboard** | **Fully Implemented** | Live citizen points calculation, profile levels, Pioneer badges, helpfulness scores, and a scrolling leaderboard. |
+| Logout works instantly? | ❌ No | ✅ Yes |
+| Payload exposed? | ⚠️ Decodable (base64) | ✅ Opaque |
+| Instant user ban? | ❌ Need a blacklist table | ✅ Delete session |
+| MongoDB roundtrip per req? | ❌ None | ⚠️ 1 fast lookup |
+| Industry use | Auth0, Firebase | **Google, GitHub, Stripe** |
+
+---
+
+## 🌍 Real GPS Location
+
+FixIt now uses the browser **Geolocation API** for true geofenced proximity verification instead of hardcoded coordinates.
+
+- On first load, a **Location Permission Modal** explains *why* GPS is needed before triggering the browser prompt.
+- If the user **allows**, `watchPosition()` continuously tracks their coordinates.
+- If the user **denies**, they pick from a **city selector** (Bengaluru / Mumbai / Delhi / Gurgaon / Noida) for approximate coordinates.
+- The **Header Navbar** shows a live `🟢 GPS Live` / `🔴 GPS Off` badge reflecting the current state.
+- GPS status is preserved: the `fixit_gps_asked` flag in localStorage prevents re-asking on every visit.
+
+---
+
+## 🗄️ Database (MongoDB)
+
+All civic data is persisted in MongoDB via Mongoose ODM.
+
+| Collection | Schema | Purpose |
+| :--- | :--- | :--- |
+| `issues` | `issue.model.ts` | All civic reports |
+| `users` | `user.model.ts` | Citizen profiles, points, levels |
+| `sessions` | `session.model.ts` | Server-side session records (TTL auto-expiry) |
+
+**Seed Data Coverage** (57 high-fidelity issues across 5 cities):
+
+| City | Areas Covered | Issues |
+| :--- | :--- | :--- |
+| Bengaluru | Koramangala, HSR, Indiranagar | 7 |
+| Mumbai | Bandra, Carter Road, Linking Road | 4 |
+| Delhi | Saket, Vasant Kunj, Connaught Place | 3 |
+| **Gurgaon** | **Cyber City, Golf Course Road, Sector 29, MG Road, Sohna Road** | **5** |
+| **Noida** | **Sector 18, Sector 62, Film City Road, Kalindi Kunj, Amity Road** | **5** |
+
+---
+
+## ✅ Backend Request Validation (Zod)
+
+All mutating API routes validate their request body using **Zod schemas** before any database writes.
+
+| Route | Zod Schema |
+| :--- | :--- |
+| `POST /api/issues` | `CreateIssueSchema` |
+| `PUT /api/issues/:id/verify` | `VerifyIssueSchema` |
+| `POST /api/issues/:id/comments` | `CommentSchema` |
+| `PUT /api/issues/:id/resolve` | `ResolveIssueSchema` |
+| `PUT /api/issues/:id/adopt` | `AdoptIssueSchema` |
+
+Invalid payloads receive `400 Bad Request` with structured field-level Zod error messages — never a silent write or crash.
+
+---
+
+## 🗑️ LocalStorage Policy (Minimal Surface)
+
+FixIt intentionally minimizes browser storage to reduce stale data risk and attack surface.
+
+| Key | Kept? | Reason |
+| :--- | :--- | :--- |
+| `fixit_issues` | ✅ Keep | Offline-first fallback cache when server is unreachable |
+| `fixit_offline_queue` | ✅ Keep | Critical for queued mutations when offline |
+| `fixit_gps_asked` | ✅ Keep | Prevents GPS permission modal re-appearing every visit |
+| `fixit_users` | ❌ Removed | Leaderboard always comes from DB |
+| `fixit_current_user` | ❌ Removed | User comes from `/api/auth/me` via server session |
+| `fixit_agent_logs` | ❌ Removed | Logs are in-memory only, not persisted |
+| `fixit_war_room_active` | ❌ Removed | Transient UI state — resets per session by design |
+| `fixit_war_room_area` | ❌ Removed | Same as above |
+
+---
+
+## 💡 Feature Implementation Matrix
+
+| Feature | Status | Implementation |
+| :--- | :--- | :--- |
+| **Full Map View & Hotspots** | ✅ Fully Implemented | Custom SVG map with severity-based pulse animations, density heatmaps, chronic zone overlays |
+| **AI Multi-Step Report** | ✅ Fully Implemented | Google Gemini 2.0 Flash analyzes images for severity, category, impact radius, authority |
+| **Real GPS Proximity** | ✅ Fully Implemented | `navigator.geolocation.watchPosition` → geofenced 500m verify/resolve buttons |
+| **Google OAuth (Server-Side)** | ✅ Fully Implemented | Express handles full code exchange; cookie set on server — React never sees the token |
+| **Session Auth (Industry Grade)** | ✅ Fully Implemented | Opaque UUID in httpOnly cookie; MongoDB sessions with TTL auto-expiry |
+| **Zod Request Validation** | ✅ Fully Implemented | All `POST`/`PUT` routes validated before DB write; 400 on bad payload |
+| **MongoDB Persistence** | ✅ Fully Implemented | All issues, users, sessions in MongoDB Atlas / local |
+| **Offline-First Queue** | ✅ Fully Implemented | Failed mutations queued in localStorage, auto-flushed when online |
+| **Anonymity & Safety** | ✅ Fully Implemented | SHA-256 token hashing, legal aid widget, whistleblower warnings |
+| **Before/After Slider** | ✅ Fully Implemented | CSS clip-path drag slider with GPS proximity-locked resolution |
+| **Complaint Letter Gen** | ✅ Fully Implemented | Gemini 2.0 writes formal municipal letter downloadable as text |
+| **Social Amplification** | ✅ Fully Implemented | Tweet preview modal targeting city-specific municipal handles |
+| **Autonomous Agent** | ✅ Fully Implemented | AI agent panel with escalation, chronic zone flagging, duplicate merging |
+| **Gamification & Leaderboard** | ✅ Fully Implemented | Points, levels, Pioneer badges, helpfulness scores, live leaderboard |
+| **i18n (EN/HI)** | ✅ Fully Implemented | react-i18next with full English and Hindi locale files |
 
 ---
 
 ## 🛡️ Known Challenges & Future Roadmap
 
-| Challenge | Current Approach in V1 | Planned Solution in V2 |
+| Challenge | Current V1 Approach | Planned V2 Solution |
 | :--- | :--- | :--- |
-| **Anonymity & Personal Safety** | Client-side SHA-256 token hashing; persistent Legal Aid sidebar widget for quick recourse; Whistleblower warnings. | Complete zero-knowledge-proof (ZKP) verification integration to prevent any connection tracing. |
-| **Fake Reports & AI Media** | EXIF camera metadata inspections, separate "Flag as Fake" button, 3 flags trigger Under Review, Gemini model authenticity verification. | Integration with standard Content Authenticity Initiative (C2PA) metadata specs and Google SynthID watermarking checks. |
-| **Resolution Fraud** | Mandatory GPS-tagged resolution photo within 50m of original coordinate, verified by original reporter + 2 independent verifiers. | Multi-spectral analysis of before/after photos using advanced computer vision models to ensure structural differences match. |
-| **Legal Liabilities & Threats** | Disclaimers built into UI, immediate emergency 112 routing, direct secure sharing with verified legal/press NGOs. | Legal insurance funds for citizen advocates, automated secure decentralized storage (IPFS) for raw evidence. |
-| **No Official Municipal APIs** | Beautiful, pre-drafted legal municipal letter generator to let citizens easily forward claims directly via email/PDF. | Direct integrations with official national grievance APIs (such as CPGRAMS in India) once public endpoints open. |
+| **Anonymity & Personal Safety** | SHA-256 token hashing; Legal Aid sidebar | Zero-knowledge-proof (ZKP) verification |
+| **Fake Reports & AI Media** | EXIF metadata check, Flag button, Gemini authenticity score | C2PA / Google SynthID watermark checks |
+| **Resolution Fraud** | GPS-tagged resolution photo within 500m, verified by reporter + 2 citizens | Multi-spectral before/after photo analysis |
+| **Legal Liabilities** | Disclaimers, 112 emergency routing, secure NGO share | Legal insurance for citizen advocates, IPFS evidence storage |
+| **No Official Municipal APIs** | Pre-drafted formal complaint letter via Gemini | Direct CPGRAMS / municipal API integrations |
+| **Session Scalability at Scale** | MongoDB session store (fine for <10k concurrent) | Redis session cluster for horizontal scaling |
 
 ---
 
@@ -98,4 +206,4 @@ To make a **flawless, highly reliable, and stunning demo** for the hackathon jud
   * *FixIt Solution:* Public status pipeline timelines, autonomous AI agents escalating neglected cases, and an automated municipal complaint letter generator to give teeth to reports.
 * **Traditional Citizen Mapping Apps (SeeClickFix, FixMyStreet):**
   * *Why they fail:* No automated validation leads to spam, lacks social media amplification mechanisms, and has no personal reward/gamification engine to sustain long-term engagement.
-  * *FixIt Solution:* AI-powered metadata analysis, geofenced verification, Twitter auto-amplification, and rich local gamification metrics.
+  * *FixIt Solution:* AI-powered metadata analysis, geofenced GPS verification, Twitter auto-amplification, and rich local gamification metrics.

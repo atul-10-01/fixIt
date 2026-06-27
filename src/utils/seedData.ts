@@ -4,7 +4,9 @@ import { Issue, UserProfile, AgentLog, Severity, IssueStatus } from '../types';
 export const CITY_CENTERS = {
   Bengaluru: { lat: 12.9345, lng: 77.6265, name: "Koramangala" },
   Mumbai: { lat: 19.0596, lng: 72.8295, name: "Bandra West" },
-  Delhi: { lat: 28.5244, lng: 77.2167, name: "Saket" }
+  Delhi: { lat: 28.5244, lng: 77.2167, name: "Saket" },
+  Gurgaon: { lat: 28.4595, lng: 77.0266, name: "Cyber City" },
+  Noida: { lat: 28.5355, lng: 77.3910, name: "Sector 18" }
 };
 
 // Helpfulness calculation: (verified * 15) + (resolved * 25) + submitted * 10
@@ -123,7 +125,9 @@ const CATEGORY_IMAGES = {
 const STREETS = {
   Bengaluru: ["80 Feet Road", "100 Feet Road", "Koramangala 4th Block", "HSR 19th Main", "Indiranagar 12th Main", "ST Bed Area", "Sarjapur Road"],
   Mumbai: ["Carter Road", "Linking Road", "Hill Road", "Juhu Tara Road", "Colaba Causeway", "Pali Hill", "Veer Savarkar Marg"],
-  Delhi: ["Saket M-Block", "Vasant Kunj Sector C", "Rajpath Avenue", "Connaught Circle", "Karol Bagh Main Market", "Ring Road Extension"]
+  Delhi: ["Saket M-Block", "Vasant Kunj Sector C", "Rajpath Avenue", "Connaught Circle", "Karol Bagh Main Market", "Ring Road Extension"],
+  Gurgaon: ["MG Road", "Golf Course Road", "Sohna Road", "NH-48 Service Road", "DLF Phase 4 Main", "Sector 29 Huda Market Road", "Rapid Metro Connector"],
+  Noida: ["Film City Road", "Sector 62 IT Corridor", "Greater Noida Expressway", "Sector 18 Atta Market Road", "Kalindi Kunj Main Road", "Sector 15A Flyover", "Amity Road"]
 };
 
 // Generates high-fidelity simulated issues
@@ -351,6 +355,151 @@ export function generateSeedIssues(): Issue[] {
       verifications: [],
       upvotes: [],
       isChronic: true
+    },
+
+    // GURGAON (Cyber City / Golf Course Road / Sector 29)
+    {
+      city: "Gurgaon",
+      category: "pothole",
+      title: "Dangerous Pothole Cluster on Golf Course Road Near DLF Crossing",
+      desc: "At least 5 connected potholes have developed on the main stretch. Heavy rains made them worse. Hundreds of office commuters face risk every morning.",
+      status: "escalated" as IssueStatus,
+      severity: "critical" as Severity,
+      severityScore: 9,
+      reporter: "user_rohan_m",
+      daysAgo: 2,
+      verifications: ["user_priya_s", "user_aravind_k", "user_sneha_r", "user_amit_p"],
+      upvotes: ["user_priya_s", "user_aravind_k"],
+      isChronic: true
+    },
+    {
+      city: "Gurgaon",
+      category: "flooding",
+      title: "Rapid Metro Feeder Road Flooded Under Cyber Hub Underpass",
+      desc: "Water logs every monsoon season here. The MCD drain is choked. Corporate workers are wading knee-deep after 30 minutes of rain.",
+      status: "in_progress" as IssueStatus,
+      severity: "critical" as Severity,
+      severityScore: 10,
+      reporter: "user_aravind_k",
+      daysAgo: 0.5,
+      verifications: ["user_rohan_m", "user_priya_s"],
+      upvotes: ["user_rohan_m"],
+      isChronic: true
+    },
+    {
+      city: "Gurgaon",
+      category: "streetlight",
+      title: "Sector 29 Nightclub Strip Left in Total Darkness",
+      desc: "All 6 overhead streetlights on the main Sector 29 entertainment corridor are out. Multiple molestation complaints have been filed nearby this week.",
+      status: "verified" as IssueStatus,
+      severity: "high" as Severity,
+      severityScore: 8,
+      reporter: "user_sneha_r",
+      daysAgo: 3,
+      verifications: ["user_priya_s", "user_rohan_m", "user_amit_p"],
+      upvotes: ["user_priya_s", "user_rohan_m"],
+      isChronic: false
+    },
+    {
+      city: "Gurgaon",
+      category: "garbage",
+      title: "Construction Rubble Dumped on MG Road Service Lane",
+      desc: "A contractor illegally dumped building debris on the service lane parallel to MG Road. The garbage blocks an emergency vehicle access point.",
+      status: "reported" as IssueStatus,
+      severity: "medium" as Severity,
+      severityScore: 5,
+      reporter: "user_amit_p",
+      daysAgo: 0.3,
+      verifications: [],
+      upvotes: [],
+      isChronic: false
+    },
+    {
+      city: "Gurgaon",
+      category: "encroachment",
+      title: "Illegal Vehicle Parking Blocking Sohna Road Pedestrian Way",
+      desc: "Dozens of cars parked on the footpath near Raheja Mall for weeks. Pedestrians including disabled citizens forced onto the main carriageway.",
+      status: "reported" as IssueStatus,
+      severity: "medium" as Severity,
+      severityScore: 6,
+      reporter: "user_priya_s",
+      daysAgo: 1,
+      verifications: ["user_sneha_r"],
+      upvotes: [],
+      isChronic: true
+    },
+
+    // NOIDA (Sector 18 / Sector 62 / Film City / Greater Noida Expressway)
+    {
+      city: "Noida",
+      category: "road_damage",
+      title: "Expressway Service Road Completely Broken Near Sector 62",
+      desc: "The entire service road parallel to the NH expressway has collapsed due to waterlogging. Trucks are diverting into residential colonies, causing structural damage.",
+      status: "escalated" as IssueStatus,
+      severity: "critical" as Severity,
+      severityScore: 9,
+      reporter: "user_aravind_k",
+      daysAgo: 4,
+      verifications: ["user_rohan_m", "user_priya_s", "user_sneha_r", "user_amit_p"],
+      upvotes: ["user_rohan_m", "user_priya_s"],
+      isChronic: true
+    },
+    {
+      city: "Noida",
+      category: "water_leakage",
+      title: "Burst Water Main Near Sector 18 Atta Market",
+      desc: "A JJM water main pipe has burst under the road. Water flowing since 48 hours, forming a 200m river on the main market road.",
+      status: "in_progress" as IssueStatus,
+      severity: "high" as Severity,
+      severityScore: 8,
+      reporter: "user_sneha_r",
+      daysAgo: 1,
+      verifications: ["user_priya_s", "user_aravind_k"],
+      upvotes: ["user_priya_s"],
+      isChronic: false
+    },
+    {
+      city: "Noida",
+      category: "garbage",
+      title: "Film City Road Median Full of Plastic Waste",
+      desc: "The central median strip between Film City crossing and Sector 16A has not been cleaned in weeks. Plastic bags are catching in windshields of passing vehicles.",
+      status: "verified" as IssueStatus,
+      severity: "medium" as Severity,
+      severityScore: 5,
+      reporter: "user_rohan_m",
+      daysAgo: 2,
+      verifications: ["user_priya_s", "user_amit_p", "user_sneha_r"],
+      upvotes: ["user_priya_s"],
+      isChronic: false
+    },
+    {
+      city: "Noida",
+      category: "pothole",
+      title: "Amity Road Crossroad Crater Near Sector 125",
+      desc: "A severe pothole at the Amity University junction exit has caused 3 bike accidents this week. Visible tyre rubber and shattered glass mark the spot.",
+      status: "resolved" as IssueStatus,
+      severity: "high" as Severity,
+      severityScore: 8,
+      reporter: "user_amit_p",
+      daysAgo: 12,
+      verifications: ["user_priya_s", "user_rohan_m", "user_sneha_r"],
+      upvotes: ["user_priya_s", "user_rohan_m"],
+      isChronic: true,
+      resolvedPhoto: "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?w=800&auto=format&fit=crop&q=80"
+    },
+    {
+      city: "Noida",
+      category: "streetlight",
+      title: "Kalindi Kunj Bridge Approach Road Dark After 9PM",
+      desc: "All streetlights on the 800m approach road to Kalindi Kunj bridge are defunct since monsoon hit. Police PCR van also avoids the stretch after dark.",
+      status: "reported" as IssueStatus,
+      severity: "high" as Severity,
+      severityScore: 7,
+      reporter: "user_priya_s",
+      daysAgo: 0.5,
+      verifications: ["user_sneha_r"],
+      upvotes: [],
+      isChronic: false
     }
   ];
 

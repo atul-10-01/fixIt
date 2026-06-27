@@ -16,6 +16,8 @@ import { ImpactStats } from './pages/ImpactStats';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { AdminPanel } from './pages/AdminPanel';
 import { UserProfilePage } from './pages/UserProfilePage';
+import { LocationPermissionModal } from './components/LocationPermissionModal';
+import { useGeolocation } from './hooks/useGeolocation';
 
 function AppLayout() {
   const issues = useIssuesStore((state) => state.issues);
@@ -24,15 +26,42 @@ function AppLayout() {
   const processOfflineQueue = useIssuesStore((state) => state.processOfflineQueue);
   const initializeStore = useIssuesStore((state) => state.initializeStore);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
-  // Simulated GPS for coordinates validations
-  const [userLat, setUserLat] = useState<number>(12.9345);
-  const [userLng, setUserLng] = useState<number>(77.6265);
+  // Real GPS via hook
+  const { lat: userLat, lng: userLng, status: gpsStatus, requestPermission, setFallbackCity } = useGeolocation();
+
+  // Override location when user clicks into a specific issue (dev testing UX)
+  const [devOverrideLat, setDevOverrideLat] = useState<number | null>(null);
+  const [devOverrideLng, setDevOverrideLng] = useState<number | null>(null);
+
+  const effectiveLat = devOverrideLat ?? userLat;
+  const effectiveLng = devOverrideLng ?? userLng;
 
   // Initial load and sync on mount
   useEffect(() => {
     initializeStore();
   }, [initializeStore]);
+
+  // Show location modal on first load (only if permission not yet asked)
+  useEffect(() => {
+    const alreadyAsked = localStorage.getItem('fixit_gps_asked');
+    if (!alreadyAsked) {
+      setShowLocationModal(true);
+    }
+  }, []);
+
+  const handleAllowLocation = () => {
+    localStorage.setItem('fixit_gps_asked', 'true');
+    setShowLocationModal(false);
+    requestPermission();
+  };
+
+  const handleDeclineLocation = (cityKey: string) => {
+    localStorage.setItem('fixit_gps_asked', 'true');
+    setShowLocationModal(false);
+    setFallbackCity(cityKey);
+  };
 
   // Sync network status and process offline queue on mount
   useEffect(() => {
@@ -47,7 +76,6 @@ function AppLayout() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Initial check
     setIsOnline(navigator.onLine);
     if (navigator.onLine) {
       processOfflineQueue();
@@ -59,23 +87,31 @@ function AppLayout() {
     };
   }, [setIsOnline, processOfflineQueue]);
 
-  // Set user's simulated GPS position depending on selected city quadrant
+  // Place user near selected issue for proximity testing in dev
   useEffect(() => {
     if (selectedIssueId) {
       const issue = issues.find(i => i.id === selectedIssueId);
-      if (issue) {
-        // Position user near the issue so they can test geofenced verification/resolution instantly!
-        setUserLat(issue.location.lat + 0.0005);
-        setUserLng(issue.location.lng - 0.0005);
+      if (issue && gpsStatus !== 'granted') {
+        setDevOverrideLat(issue.location.lat + 0.0005);
+        setDevOverrideLng(issue.location.lng - 0.0005);
+      } else {
+        setDevOverrideLat(null);
+        setDevOverrideLng(null);
       }
     }
-  }, [selectedIssueId, issues]);
+  }, [selectedIssueId, issues, gpsStatus]);
 
   return (
     <div className={`min-h-screen flex flex-col ${warRoomActive ? 'border-4 border-red-600/60' : ''} bg-zinc-950 text-white`}>
-      <HeaderNavbar />
+      {showLocationModal && (
+        <LocationPermissionModal
+          onAllow={handleAllowLocation}
+          onDecline={handleDeclineLocation}
+        />
+      )}
+      <HeaderNavbar gpsStatus={gpsStatus} />
       <main className="flex-grow flex flex-col">
-        <Outlet context={{ userLat, userLng, setUserLat, setUserLng, selectedIssueId, setSelectedIssueId }} />
+        <Outlet context={{ userLat: effectiveLat, userLng: effectiveLng, setUserLat: setDevOverrideLat, setUserLng: setDevOverrideLng, selectedIssueId, setSelectedIssueId, gpsStatus }} />
       </main>
       <LegalAidWidget />
       <footer className="bg-zinc-950 border-t border-zinc-900 py-8 px-6 text-center">

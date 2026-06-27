@@ -3,13 +3,16 @@ import path from "path";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
-import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { User } from "./models/user.model";
 import { Issue } from "./models/issue.model";
+import { Session } from "./models/session.model";
 import { optionalAuth, requireAuth, AuthRequest } from "./middleware/auth.middleware";
+import { validateBody } from "./middleware/validate.middleware";
+import { CreateIssueSchema, VerifyIssueSchema, CommentSchema, ResolveIssueSchema, AdoptIssueSchema } from "./schemas/issue.schema";
 import { generateSeedIssues, SEED_USERS, getHaversineDistance } from "../src/utils/seedData";
 
 dotenv.config();
@@ -269,7 +272,11 @@ app.get("/api/auth/google", (req, res) => {
 
 app.get("/api/auth/google/callback", async (req, res) => {
   const code = req.query.code as string;
-  const isSimulated = req.query.simulated === "true" || !process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID === "";
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const isSimulated = req.query.simulated === "true"
+    || !clientId
+    || clientId === ""
+    || clientId === "MY_GOOGLE_CLIENT_ID";
   
   let googleUser: { id: string; email: string; name: string; picture: string };
 
@@ -329,24 +336,37 @@ app.get("/api/auth/google/callback", async (req, res) => {
     });
   }
 
-  const secret = process.env.JWT_SECRET || 'iamgoingtowin';
-  const token = jwt.sign({ uid: dbUser.uid }, secret, { expiresIn: '7d' });
+  // Create opaque session record in DB
+  const sessionId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  await Session.create({ sessionId, uid: dbUser.uid, expiresAt });
 
-  res.cookie("fixit_token", token, {
+  res.cookie("fixit_sid", sessionId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 
   res.redirect("/");
 });
 
-app.post("/api/auth/logout", (req, res) => {
+app.post("/api/auth/logout", async (req, res) => {
+  const sessionId = req.cookies?.fixit_sid;
+  if (sessionId) {
+    await Session.deleteOne({ sessionId });
+  }
+  // Clear both new and any lingering old cookie
+  res.clearCookie("fixit_sid");
   res.clearCookie("fixit_token");
   res.json({ success: true });
 });
 
 app.get("/api/auth/me", optionalAuth, (req: AuthRequest, res) => {
+  // Proactively clear any legacy fixit_token cookie from old sessions
+  if (req.cookies?.fixit_token) {
+    res.clearCookie("fixit_token");
+  }
   if (req.user) {
     res.json(req.user);
   } else {
@@ -364,7 +384,7 @@ app.get("/api/issues", async (req, res) => {
   }
 });
 
-app.post("/api/issues", requireAuth, async (req: AuthRequest, res) => {
+app.post("/api/issues", requireAuth, validateBody(CreateIssueSchema), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     const issueData = req.body;
@@ -422,7 +442,7 @@ app.post("/api/issues", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-app.put("/api/issues/:id/verify", requireAuth, async (req: AuthRequest, res) => {
+app.put("/api/issues/:id/verify", requireAuth, validateBody(VerifyIssueSchema), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     const { userLat, userLng } = req.body;
@@ -556,7 +576,7 @@ app.put("/api/issues/:id/flag", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-app.post("/api/issues/:id/comments", requireAuth, async (req: AuthRequest, res) => {
+app.post("/api/issues/:id/comments", requireAuth, validateBody(CommentSchema), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     const { content } = req.body;
@@ -583,7 +603,7 @@ app.post("/api/issues/:id/comments", requireAuth, async (req: AuthRequest, res) 
   }
 });
 
-app.put("/api/issues/:id/adopt", requireAuth, async (req: AuthRequest, res) => {
+app.put("/api/issues/:id/adopt", requireAuth, validateBody(AdoptIssueSchema), async (req: AuthRequest, res) => {
   try {
     const { orgName } = req.body;
     const issue = await Issue.findOne({ id: req.params.id });
@@ -609,7 +629,7 @@ app.put("/api/issues/:id/adopt", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-app.put("/api/issues/:id/resolve", requireAuth, async (req: AuthRequest, res) => {
+app.put("/api/issues/:id/resolve", requireAuth, validateBody(ResolveIssueSchema), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     const { resolvedPhotoBase64, userLat, userLng } = req.body;

@@ -16,60 +16,34 @@ const getStoredJSON = (key: string, fallback: any) => {
   return fallback;
 };
 
-// Seeding checks for initial load
+// One-time migration: purge any stale localStorage keys from old builds
+(function purgeStaleKeys() {
+  const staleKeys = [
+    'fixit_current_user',
+    'fixit_users',
+    'fixit_agent_logs',
+    'fixit_war_room_active',
+    'fixit_war_room_area',
+  ];
+  staleKeys.forEach(k => localStorage.removeItem(k));
+})();
+
+// Seeding checks for initial load — issues only
 const getInitialIssues = (): Issue[] => {
-  const stored = localStorage.getItem("fixit_issues");
+  const stored = localStorage.getItem('fixit_issues');
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     } catch {
       // ignore
     }
   }
-  const seeded = generateSeedIssues();
-  return seeded;
+  return generateSeedIssues();
 };
 
-const getInitialLogs = (): AgentLog[] => {
-  const stored = localStorage.getItem("fixit_agent_logs");
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {
-      // ignore
-    }
-  }
-  const seeded = generateSeedAgentLogs();
-  return seeded;
-};
+const getInitialLogs = (): AgentLog[] => generateSeedAgentLogs();
 
-const getInitialUsers = (): UserProfile[] => {
-  const stored = localStorage.getItem("fixit_users");
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {
-      // ignore
-    }
-  }
-  return SEED_USERS;
-};
-
-const getInitialCurrentUser = (): UserProfile => {
-  const stored = localStorage.getItem("fixit_current_user");
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (parsed && typeof parsed === 'object' && 'uid' in parsed) return parsed;
-    } catch {
-      // ignore
-    }
-  }
-  return SEED_USERS[0];
-};
 
 interface IssuesState {
   issues: Issue[];
@@ -101,10 +75,10 @@ interface IssuesState {
 export const useIssuesStore = create<IssuesState>((set, get) => ({
   issues: getInitialIssues(),
   agentLogs: getInitialLogs(),
-  users: getInitialUsers(),
-  currentUser: getInitialCurrentUser(),
-  warRoomActive: getStoredJSON("fixit_war_room_active", false),
-  warRoomArea: localStorage.getItem("fixit_war_room_area") || "Koramangala",
+  users: SEED_USERS,          // always starts from seed, synced from DB on initializeStore
+  currentUser: SEED_USERS[0], // always starts from seed, synced from /api/auth/me on initializeStore
+  warRoomActive: false,       // always starts false — transient UI state, not persisted
+  warRoomArea: "Koramangala",
   offlineQueue: getStoredJSON("fixit_offline_queue", []),
   isOnline: navigator.onLine,
 
@@ -113,31 +87,30 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   initializeStore: async () => {
     const { processOfflineQueue } = get();
     try {
-      // 1. Fetch current authenticated profile
+      // 1. Fetch current authenticated profile from server (session-based)
       const user = await issuesService.getMe();
       if (user) {
         set({ currentUser: user });
-        localStorage.setItem("fixit_current_user", JSON.stringify(user));
+        // Do NOT persist currentUser to localStorage — always comes from server session
       }
 
       // 2. Fetch list of issues
       const remoteIssues = await issuesService.fetchIssues();
       if (Array.isArray(remoteIssues)) {
         set({ issues: remoteIssues, isOnline: true });
-        localStorage.setItem("fixit_issues", JSON.stringify(remoteIssues));
+        localStorage.setItem('fixit_issues', JSON.stringify(remoteIssues));
       }
 
-      // 3. Fetch leaderboard users
+      // 3. Fetch leaderboard users (in-memory only, no localStorage)
       const remoteUsers = await issuesService.fetchLeaderboard();
       if (Array.isArray(remoteUsers)) {
         set({ users: remoteUsers });
-        localStorage.setItem("fixit_users", JSON.stringify(remoteUsers));
       }
 
-      // 4. Process any pending offline logs
+      // 4. Process any pending offline mutations
       await processOfflineQueue();
     } catch (err) {
-      console.warn("Server offline or unreachable, running in offline fallback mode:", err);
+      console.warn('Server offline or unreachable, running in offline fallback mode:', err);
       set({ isOnline: false });
     }
   },
@@ -146,17 +119,16 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
     try {
       await issuesService.logout();
     } catch (err) {
-      console.error("Failed to logout API:", err);
+      console.error('Failed to logout API:', err);
     }
-    const defaultUser = SEED_USERS[0];
-    set({ currentUser: defaultUser });
-    localStorage.setItem("fixit_current_user", JSON.stringify(defaultUser));
-    // Re-fetch issues to ensure non-auth view values
+    // Reset to seed user in-memory; session is cleared server-side
+    set({ currentUser: SEED_USERS[0] });
+    // Re-fetch issues anonymously
     try {
       const list = await issuesService.fetchIssues();
       set({ issues: list });
     } catch {
-      // Fallback
+      // Fallback to cached issues
     }
   },
 
@@ -341,19 +313,12 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
 
   triggerWarRoom: (area) => {
     const { issues } = get();
+    // warRoom is purely in-memory state — no localStorage persistence
     set({ warRoomActive: true, warRoomArea: area });
-    localStorage.setItem("fixit_war_room_active", "true");
-    localStorage.setItem("fixit_war_room_area", area);
 
-    // Local simulation fallback for War Room prioritization
     const nextIssues = issues.map(i => {
       if (i.location.area.toLowerCase() === area.toLowerCase() && i.status !== "resolved") {
-        return {
-          ...i,
-          severity: "critical" as any,
-          severityScore: 10,
-          status: "escalated" as any
-        };
+        return { ...i, severity: "critical" as any, severityScore: 10, status: "escalated" as any };
       }
       return i;
     });
@@ -362,7 +327,6 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
 
   deactivateWarRoom: () => {
     set({ warRoomActive: false });
-    localStorage.setItem("fixit_war_room_active", "false");
   },
 
   runAgentLoop: () => {
@@ -382,13 +346,10 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   },
 
   clearAllData: () => {
+    // Only clear the keys we actually use
     localStorage.removeItem("fixit_issues");
-    localStorage.removeItem("fixit_agent_logs");
-    localStorage.removeItem("fixit_users");
-    localStorage.removeItem("fixit_current_user");
-    localStorage.removeItem("fixit_war_room_active");
-    localStorage.removeItem("fixit_war_room_area");
     localStorage.removeItem("fixit_offline_queue");
+    localStorage.removeItem("fixit_gps_asked");
 
     const seeded = generateSeedIssues();
     const seededLogs = generateSeedAgentLogs();

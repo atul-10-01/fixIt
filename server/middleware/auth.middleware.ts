@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { User } from '../models/user.model';
+import { Session } from '../models/session.model';
 
 export interface AuthRequest extends Request {
   user?: any;
@@ -8,17 +8,26 @@ export interface AuthRequest extends Request {
 
 export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.cookies?.fixit_token;
-    if (!token) {
-      res.status(401).json({ error: "Authentication token required. Please sign in." });
+    const sessionId = req.cookies?.fixit_sid;
+    if (!sessionId) {
+      res.status(401).json({ error: "Authentication session required. Please sign in." });
       return;
     }
 
-    const secret = process.env.JWT_SECRET || 'iamgoingtowin';
-    const decoded = jwt.verify(token, secret) as { uid: string };
+    const session = await Session.findOne({
+      sessionId,
+      expiresAt: { $gt: new Date() }
+    });
     
-    const user = await User.findOne({ uid: decoded.uid });
+    if (!session) {
+      res.clearCookie("fixit_sid");
+      res.status(401).json({ error: "Session expired or invalid. Please sign in again." });
+      return;
+    }
+
+    const user = await User.findOne({ uid: session.uid });
     if (!user) {
+      res.clearCookie("fixit_sid");
       res.status(401).json({ error: "User profile not found. Access denied." });
       return;
     }
@@ -26,23 +35,27 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
     req.user = user;
     next();
   } catch (err) {
-    res.status(401).json({ error: "Invalid session or authentication expired." });
+    res.status(401).json({ error: "Invalid session. Please sign in again." });
   }
 };
 
 export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.cookies?.fixit_token;
-    if (token) {
-      const secret = process.env.JWT_SECRET || 'iamgoingtowin';
-      const decoded = jwt.verify(token, secret) as { uid: string };
-      const user = await User.findOne({ uid: decoded.uid });
-      if (user) {
-        req.user = user;
+    const sessionId = req.cookies?.fixit_sid;
+    if (sessionId) {
+      const session = await Session.findOne({
+        sessionId,
+        expiresAt: { $gt: new Date() }
+      });
+      if (session) {
+        const user = await User.findOne({ uid: session.uid });
+        if (user) {
+          req.user = user;
+        }
       }
     }
   } catch (err) {
-    // Continue anonymously if token is invalid or parsing fails
+    // Continue anonymously if session parsing fails
   }
   next();
 };

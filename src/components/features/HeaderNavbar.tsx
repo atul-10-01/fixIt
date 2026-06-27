@@ -2,8 +2,13 @@ import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useIssuesStore } from '../../store/useIssuesStore';
+import { GeolocationStatus } from '../../hooks/useGeolocation';
 
-export function HeaderNavbar() {
+interface HeaderNavbarProps {
+  gpsStatus?: GeolocationStatus;
+}
+
+export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
   const { t, i18n } = useTranslation();
   const warRoomActive = useIssuesStore((state) => state.warRoomActive);
   const offlineQueue = useIssuesStore((state) => state.offlineQueue);
@@ -101,6 +106,19 @@ export function HeaderNavbar() {
             <option value="kn">KN</option>
             <option value="hi">HI</option>
           </select>
+
+          {/* GPS Status badge */}
+          {gpsStatus !== 'idle' && (
+            <div className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded border ${
+              gpsStatus === 'granted'
+                ? 'bg-emerald-950/20 border-emerald-800 text-emerald-500'
+                : gpsStatus === 'pending'
+                ? 'bg-zinc-900 border-zinc-700 text-zinc-400 animate-pulse'
+                : 'bg-red-950/20 border-red-800/40 text-red-500'
+            }`}>
+              {gpsStatus === 'granted' ? '🟢 GPS Live' : gpsStatus === 'pending' ? '📡 Locating...' : '🔴 GPS Off'}
+            </div>
+          )}
 
           {offlineQueue.length > 0 && (
             <div className="bg-red-600/15 border border-red-500 text-red-500 text-[9px] font-black px-2 py-1 uppercase tracking-wider rounded animate-pulse">
