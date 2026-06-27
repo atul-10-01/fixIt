@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
-import { useIssuesContext, IssuesProvider } from './context/IssuesContext';
+import { useIssuesStore } from './store/useIssuesStore';
 import { HeaderNavbar } from './components/features/HeaderNavbar';
 import { LegalAidWidget } from './components/LegalAidWidget';
 import { LandingPage } from './pages/LandingPage';
@@ -18,12 +18,40 @@ import { AdminPanel } from './pages/AdminPanel';
 import { UserProfilePage } from './pages/UserProfilePage';
 
 function AppLayout() {
-  const { issues, warRoomActive } = useIssuesContext();
+  const issues = useIssuesStore((state) => state.issues);
+  const warRoomActive = useIssuesStore((state) => state.warRoomActive);
+  const setIsOnline = useIssuesStore((state) => state.setIsOnline);
+  const processOfflineQueue = useIssuesStore((state) => state.processOfflineQueue);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
 
   // Simulated GPS for coordinates validations
   const [userLat, setUserLat] = useState<number>(12.9345);
   const [userLng, setUserLng] = useState<number>(77.6265);
+
+  // Sync network status and process offline queue on mount
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      processOfflineQueue();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Initial check
+    setIsOnline(navigator.onLine);
+    if (navigator.onLine) {
+      processOfflineQueue();
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [setIsOnline, processOfflineQueue]);
 
   // Set user's simulated GPS position depending on selected city quadrant
   useEffect(() => {
@@ -62,21 +90,19 @@ function AppLayout() {
 
 export default function App() {
   return (
-    <IssuesProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AppLayout />}>
-            <Route index element={<LandingPage />} />
-            <Route path="map" element={<MapExplorer />} />
-            <Route path="incidents" element={<IncidentStream />} />
-            <Route path="report" element={<ReportHazard />} />
-            <Route path="stats" element={<ImpactStats />} />
-            <Route path="leaderboard" element={<LeaderboardPage />} />
-            <Route path="admin" element={<AdminPanel />} />
-            <Route path="profile" element={<UserProfilePage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </IssuesProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          <Route index element={<LandingPage />} />
+          <Route path="map" element={<MapExplorer />} />
+          <Route path="incidents" element={<IncidentStream />} />
+          <Route path="report" element={<ReportHazard />} />
+          <Route path="stats" element={<ImpactStats />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="admin" element={<AdminPanel />} />
+          <Route path="profile" element={<UserProfilePage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }

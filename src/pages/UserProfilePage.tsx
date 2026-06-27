@@ -1,9 +1,10 @@
 import React from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
 
 export function UserProfilePage() {
-  const { issues, currentUser } = useIssuesContext();
+  const currentUser = useIssuesStore((state) => state.currentUser);
+  const issues = useIssuesStore((state) => state.issues);
   const navigate = useNavigate();
   const { setSelectedIssueId } = useOutletContext<{
     setSelectedIssueId: (id: string | null) => void;

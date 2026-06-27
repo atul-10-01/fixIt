@@ -1,9 +1,11 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { useIssuesContext } from '../../context/IssuesContext';
+import { useIssuesStore } from '../../store/useIssuesStore';
 
 export function HeaderNavbar() {
-  const { warRoomActive, offlineQueue, currentUser } = useIssuesContext();
+  const warRoomActive = useIssuesStore((state) => state.warRoomActive);
+  const offlineQueue = useIssuesStore((state) => state.offlineQueue);
+  const currentUser = useIssuesStore((state) => state.currentUser);
 
   return (
     <>

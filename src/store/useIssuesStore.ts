@@ -1,8 +1,52 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { create } from 'zustand';
 import { Issue, UserProfile, AgentLog, Severity, IssueStatus, Comment } from '../types';
 import { generateSeedIssues, generateSeedAgentLogs, SEED_USERS, getHaversineDistance } from '../utils/seedData';
 
-interface IssuesContextType {
+// Helper to read initial state safely
+const getStoredJSON = (key: string, fallback: any) => {
+  const item = localStorage.getItem(key);
+  if (item) {
+    try {
+      return JSON.parse(item);
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+};
+
+// Seeding checks for initial load
+const getInitialIssues = (): Issue[] => {
+  const stored = localStorage.getItem("fixit_issues");
+  if (stored) return JSON.parse(stored);
+  const seeded = generateSeedIssues();
+  localStorage.setItem("fixit_issues", JSON.stringify(seeded));
+  return seeded;
+};
+
+const getInitialLogs = (): AgentLog[] => {
+  const stored = localStorage.getItem("fixit_agent_logs");
+  if (stored) return JSON.parse(stored);
+  const seeded = generateSeedAgentLogs();
+  localStorage.setItem("fixit_agent_logs", JSON.stringify(seeded));
+  return seeded;
+};
+
+const getInitialUsers = (): UserProfile[] => {
+  const stored = localStorage.getItem("fixit_users");
+  if (stored) return JSON.parse(stored);
+  localStorage.setItem("fixit_users", JSON.stringify(SEED_USERS));
+  return SEED_USERS;
+};
+
+const getInitialCurrentUser = (): UserProfile => {
+  const stored = localStorage.getItem("fixit_current_user");
+  if (stored) return JSON.parse(stored);
+  localStorage.setItem("fixit_current_user", JSON.stringify(SEED_USERS[0]));
+  return SEED_USERS[0];
+};
+
+interface IssuesState {
   issues: Issue[];
   agentLogs: AgentLog[];
   users: UserProfile[];
@@ -10,6 +54,9 @@ interface IssuesContextType {
   warRoomActive: boolean;
   warRoomArea: string;
   offlineQueue: any[];
+  isOnline: boolean;
+  
+  setIsOnline: (online: boolean) => void;
   addIssue: (issueData: Omit<Issue, 'id' | 'status' | 'reportedBy' | 'reportedByName' | 'reportedByAvatar' | 'reportedAt' | 'verifications' | 'verificationCount' | 'upvotes' | 'comments' | 'agentHistory' | 'escalatedAt' | 'resolvedAt' | 'resolutionTimeHours' | 'adoptedBy' | 'adoptedDate' | 'isChronic' | 'isFake' | 'flagCount' | 'flags' | 'resolvedPhoto'>) => void;
   verifyIssue: (issueId: string, userLat: number, userLng: number) => { success: boolean; message: string };
   upvoteIssue: (issueId: string) => void;
@@ -21,123 +68,24 @@ interface IssuesContextType {
   deactivateWarRoom: () => void;
   runAgentLoop: () => void;
   clearAllData: () => void;
-  isOnline: boolean;
   processOfflineQueue: () => void;
+  addPointsToUser: (uid: string, pts: number) => void;
 }
 
-const IssuesContext = createContext<IssuesContextType | undefined>(undefined);
+export const useIssuesStore = create<IssuesState>((set, get) => ({
+  issues: getInitialIssues(),
+  agentLogs: getInitialLogs(),
+  users: getInitialUsers(),
+  currentUser: getInitialCurrentUser(),
+  warRoomActive: getStoredJSON("fixit_war_room_active", false),
+  warRoomArea: localStorage.getItem("fixit_war_room_area") || "Koramangala",
+  offlineQueue: getStoredJSON("fixit_offline_queue", []),
+  isOnline: navigator.onLine,
 
-export const useIssuesContext = () => {
-  const context = useContext(IssuesContext);
-  if (!context) throw new Error("useIssuesContext must be used within an IssuesProvider");
-  return context;
-};
+  setIsOnline: (online) => set({ isOnline: online }),
 
-export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [agentLogs, setAgentLogs] = useState<AgentLog[]>([]);
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(SEED_USERS[0]);
-  const [warRoomActive, setWarRoomActive] = useState<boolean>(false);
-  const [warRoomArea, setWarRoomArea] = useState<string>("Koramangala");
-  const [offlineQueue, setOfflineQueue] = useState<any[]>([]);
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-
-  // Initialize data from localStorage or SeedData
-  useEffect(() => {
-    const storedIssues = localStorage.getItem("fixit_issues");
-    const storedLogs = localStorage.getItem("fixit_agent_logs");
-    const storedUsers = localStorage.getItem("fixit_users");
-    const storedUser = localStorage.getItem("fixit_current_user");
-    const storedWarRoom = localStorage.getItem("fixit_war_room_active");
-    const storedWarRoomArea = localStorage.getItem("fixit_war_room_area");
-    const storedQueue = localStorage.getItem("fixit_offline_queue");
-
-    if (storedIssues) {
-      setIssues(JSON.parse(storedIssues));
-    } else {
-      const seeded = generateSeedIssues();
-      setIssues(seeded);
-      localStorage.setItem("fixit_issues", JSON.stringify(seeded));
-    }
-
-    if (storedLogs) {
-      setAgentLogs(JSON.parse(storedLogs));
-    } else {
-      const seededLogs = generateSeedAgentLogs();
-      setAgentLogs(seededLogs);
-      localStorage.setItem("fixit_agent_logs", JSON.stringify(seededLogs));
-    }
-
-    if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
-    } else {
-      setUsers(SEED_USERS);
-      localStorage.setItem("fixit_users", JSON.stringify(SEED_USERS));
-    }
-
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    } else {
-      setCurrentUser(SEED_USERS[0]);
-      localStorage.setItem("fixit_current_user", JSON.stringify(SEED_USERS[0]));
-    }
-
-    if (storedWarRoom) {
-      setWarRoomActive(JSON.parse(storedWarRoom));
-    }
-    if (storedWarRoomArea) {
-      setWarRoomArea(storedWarRoomArea);
-    }
-
-    if (storedQueue) {
-      setOfflineQueue(JSON.parse(storedQueue));
-    }
-  }, []);
-
-  // Sync data helpers
-  const saveIssues = (newIssues: Issue[]) => {
-    setIssues(newIssues);
-    localStorage.setItem("fixit_issues", JSON.stringify(newIssues));
-  };
-
-  const saveLogs = (newLogs: AgentLog[]) => {
-    setAgentLogs(newLogs);
-    localStorage.setItem("fixit_agent_logs", JSON.stringify(newLogs));
-  };
-
-  const saveUsersState = (newUsers: UserProfile[]) => {
-    setUsers(newUsers);
-    localStorage.setItem("fixit_users", JSON.stringify(newUsers));
-  };
-
-  const saveCurrentUserState = (newUser: UserProfile) => {
-    setCurrentUser(newUser);
-    localStorage.setItem("fixit_current_user", JSON.stringify(newUser));
-  };
-
-  // Listen to network changes
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      console.log("Browser is back online. Auto-processing offline report queue...");
-      processOfflineQueue();
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      console.log("Browser went offline. Report queuing mode active.");
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [offlineQueue, issues]);
-
-  // Points increment helper
-  const addPointsToUser = (uid: string, pts: number) => {
+  addPointsToUser: (uid, pts) => {
+    const { users, currentUser } = get();
     const updatedUsers = users.map(u => {
       if (u.uid === uid) {
         const nextPoints = u.points + pts;
@@ -158,15 +106,18 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return u;
     });
 
-    saveUsersState(updatedUsers);
+    set({ users: updatedUsers });
+    localStorage.setItem("fixit_users", JSON.stringify(updatedUsers));
+    
     const self = updatedUsers.find(u => u.uid === currentUser.uid);
     if (self) {
-      saveCurrentUserState(self);
+      set({ currentUser: self });
+      localStorage.setItem("fixit_current_user", JSON.stringify(self));
     }
-  };
+  },
 
-  // Process offline queued submissions
-  const processOfflineQueue = () => {
+  processOfflineQueue: () => {
+    const { offlineQueue, issues, currentUser, addPointsToUser } = get();
     if (offlineQueue.length === 0) return;
 
     let updatedIssues = [...issues];
@@ -175,7 +126,7 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newIssue: Issue = {
         ...item,
         id,
-        status: 'reported',
+        status: "reported",
         verifications: [],
         verificationCount: 0,
         upvotes: [],
@@ -201,17 +152,17 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       updatedIssues.unshift(newIssue);
     });
 
-    saveIssues(updatedIssues);
-    setOfflineQueue([]);
+    set({ issues: updatedIssues, offlineQueue: [] });
+    localStorage.setItem("fixit_issues", JSON.stringify(updatedIssues));
     localStorage.removeItem("fixit_offline_queue");
     addPointsToUser(currentUser.uid, offlineQueue.length * 10);
-  };
+  },
 
-  // Add new issue
-  const addIssue = (issueData: any) => {
+  addIssue: (issueData) => {
+    const { isOnline, offlineQueue, issues, currentUser, addPointsToUser } = get();
     if (!isOnline) {
       const updatedQueue = [...offlineQueue, issueData];
-      setOfflineQueue(updatedQueue);
+      set({ offlineQueue: updatedQueue });
       localStorage.setItem("fixit_offline_queue", JSON.stringify(updatedQueue));
       return;
     }
@@ -249,14 +200,14 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     const updated = [newIssue, ...issues];
-    saveIssues(updated);
+    set({ issues: updated });
+    localStorage.setItem("fixit_issues", JSON.stringify(updated));
 
-    // Increment points
     addPointsToUser(currentUser.uid, 10);
-  };
+  },
 
-  // Verify issue with GPS distance check
-  const verifyIssue = (issueId: string, userLat: number, userLng: number): { success: boolean; message: string } => {
+  verifyIssue: (issueId, userLat, userLng) => {
+    const { issues, currentUser, addPointsToUser } = get();
     const issueIndex = issues.findIndex(i => i.id === issueId);
     if (issueIndex === -1) return { success: false, message: "Issue not found." };
 
@@ -269,7 +220,6 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return { success: false, message: "You have already verified this issue." };
     }
 
-    // Geofenced checking (500m threshold)
     const dist = getHaversineDistance(userLat, userLng, issue.location.lat, issue.location.lng);
     if (dist > 500) {
       return {
@@ -300,7 +250,6 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     }
 
-    // Upgrade severity if verification count > 10
     if (nextCount > 10 && issue.severity !== "critical") {
       nextStatus = "escalated";
       nextHistory.push({
@@ -321,17 +270,18 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const nextIssues = [...issues];
     nextIssues[issueIndex] = updatedIssue;
-    saveIssues(nextIssues);
+    
+    set({ issues: nextIssues });
+    localStorage.setItem("fixit_issues", JSON.stringify(nextIssues));
 
-    // Grant points
-    addPointsToUser(currentUser.uid, 5); // Verify others
-    addPointsToUser(issue.reportedBy, 15); // Bonus to original reporter
+    addPointsToUser(currentUser.uid, 5);
+    addPointsToUser(issue.reportedBy, 15);
 
     return { success: true, message: "Verification logged successfully! Points granted." };
-  };
+  },
 
-  // Upvote issue
-  const upvoteIssue = (issueId: string) => {
+  upvoteIssue: (issueId) => {
+    const { issues, currentUser } = get();
     const updated = issues.map(i => {
       if (i.id === issueId) {
         const hasUpvoted = i.upvotes.includes(currentUser.uid);
@@ -345,14 +295,15 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       return i;
     });
-    saveIssues(updated);
-  };
+    set({ issues: updated });
+    localStorage.setItem("fixit_issues", JSON.stringify(updated));
+  },
 
-  // Flag as fake
-  const flagFakeIssue = (issueId: string) => {
+  flagFakeIssue: (issueId) => {
+    const { issues, currentUser } = get();
     const updated = issues.map(i => {
       if (i.id === issueId) {
-        if (i.flags.includes(currentUser.uid)) return i; // No double flagging
+        if (i.flags.includes(currentUser.uid)) return i;
 
         const nextFlags = [...i.flags, currentUser.uid];
         const nextFlagCount = nextFlags.length;
@@ -380,11 +331,12 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return i;
     });
 
-    saveIssues(updated);
-  };
+    set({ issues: updated });
+    localStorage.setItem("fixit_issues", JSON.stringify(updated));
+  },
 
-  // Add Comment
-  const addComment = (issueId: string, content: string) => {
+  addComment: (issueId, content) => {
+    const { issues, currentUser } = get();
     if (!content.trim()) return;
 
     const newComment: Comment = {
@@ -405,11 +357,12 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       return i;
     });
-    saveIssues(updated);
-  };
+    set({ issues: updated });
+    localStorage.setItem("fixit_issues", JSON.stringify(updated));
+  },
 
-  // Adopt Issue by Local Org / Business
-  const adoptIssue = (issueId: string, orgName: string) => {
+  adoptIssue: (issueId, orgName) => {
+    const { issues } = get();
     if (!orgName.trim()) return;
 
     const updated = issues.map(i => {
@@ -432,18 +385,18 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return i;
     });
 
-    saveIssues(updated);
-  };
+    set({ issues: updated });
+    localStorage.setItem("fixit_issues", JSON.stringify(updated));
+  },
 
-  // Resolve issue with Before/After upload and GPS constraint
-  const resolveIssue = (issueId: string, resolvedPhotoBase64: string, userLat: number, userLng: number): { success: boolean; message: string } => {
+  resolveIssue: (issueId, resolvedPhotoBase64, userLat, userLng) => {
+    const { issues, currentUser, agentLogs, addPointsToUser } = get();
     const issueIndex = issues.findIndex(i => i.id === issueId);
     if (issueIndex === -1) return { success: false, message: "Issue not found." };
 
     const issue = issues[issueIndex];
     if (issue.status === "resolved") return { success: false, message: "Issue is already marked resolved." };
 
-    // Geofenced check: tolerance 50 meters
     const dist = getHaversineDistance(userLat, userLng, issue.location.lat, issue.location.lng);
     if (dist > 50) {
       return {
@@ -470,13 +423,12 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const nextIssues = [...issues];
     nextIssues[issueIndex] = updatedIssue;
-    saveIssues(nextIssues);
+    set({ issues: nextIssues });
+    localStorage.setItem("fixit_issues", JSON.stringify(nextIssues));
 
-    // Grant massive points
-    addPointsToUser(currentUser.uid, 15); // resolver points
-    addPointsToUser(issue.reportedBy, 25); // reward reporter for successful resolve
+    addPointsToUser(currentUser.uid, 15);
+    addPointsToUser(issue.reportedBy, 25);
 
-    // Record agent log
     const newLog: AgentLog = {
       id: `log_res_${Date.now()}`,
       timestamp: new Date().toISOString(),
@@ -486,19 +438,19 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       details: `🤖 Verified resolution for Issue #${issue.id.split('_')[1]}. On-site proof verified within 50m boundaries. Direct-impact points awarded.`,
       automated: true
     };
-    saveLogs([newLog, ...agentLogs]);
+    const nextLogs = [newLog, ...agentLogs];
+    set({ agentLogs: nextLogs });
+    localStorage.setItem("fixit_agent_logs", JSON.stringify(nextLogs));
 
     return { success: true, message: "Issue resolved successfully! High-quality on-site Before/After proof registered." };
-  };
+  },
 
-  // War Room Emergency Mode Triggering
-  const triggerWarRoom = (area: string) => {
-    setWarRoomActive(true);
-    setWarRoomArea(area);
+  triggerWarRoom: (area) => {
+    const { issues, agentLogs } = get();
+    set({ warRoomActive: true, warRoomArea: area });
     localStorage.setItem("fixit_war_room_active", "true");
     localStorage.setItem("fixit_war_room_area", area);
 
-    // Instantly escalate and make critical all issues in the affected area
     const nextIssues = issues.map(i => {
       if (i.location.area.toLowerCase() === area.toLowerCase() && i.status !== "resolved") {
         const nextHistory = [...i.agentHistory, {
@@ -518,7 +470,8 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return i;
     });
 
-    saveIssues(nextIssues);
+    set({ issues: nextIssues });
+    localStorage.setItem("fixit_issues", JSON.stringify(nextIssues));
 
     const newLog: AgentLog = {
       id: `log_wr_${Date.now()}`,
@@ -529,12 +482,14 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       details: `🤖 WAR ROOM ACTIVE in ${area}. All unresolved local cases escalated to CRITICAL priority with 2-hour agent escalation sweeps active.`,
       automated: true
     };
+    const nextLogs = [newLog, ...agentLogs];
+    set({ agentLogs: nextLogs });
+    localStorage.setItem("fixit_agent_logs", JSON.stringify(nextLogs));
+  },
 
-    saveLogs([newLog, ...agentLogs]);
-  };
-
-  const deactivateWarRoom = () => {
-    setWarRoomActive(false);
+  deactivateWarRoom: () => {
+    const { agentLogs } = get();
+    set({ warRoomActive: false });
     localStorage.setItem("fixit_war_room_active", "false");
 
     const newLog: AgentLog = {
@@ -546,15 +501,17 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       details: `🤖 War Room deactivated. Standing emergency priority reverted to normal ward schedules.`,
       automated: true
     };
-    saveLogs([newLog, ...agentLogs]);
-  };
+    const nextLogs = [newLog, ...agentLogs];
+    set({ agentLogs: nextLogs });
+    localStorage.setItem("fixit_agent_logs", JSON.stringify(nextLogs));
+  },
 
-  // Autonomous Escalation Engine Sweeper (Feature 5 Agent)
-  const runAgentLoop = () => {
+  runAgentLoop: () => {
+    const { issues, warRoomActive, agentLogs } = get();
     console.log("Starting Autonomous Escalation Agent check cycle...");
     let logsCreated: AgentLog[] = [];
     const nowTime = Date.now();
-    const thresholdMs = warRoomActive ? 2 * 3600 * 1000 : 48 * 3600 * 1000; // 2hrs in War Room, else 48hrs
+    const thresholdMs = warRoomActive ? 2 * 3600 * 1000 : 48 * 3600 * 1000;
 
     const updatedIssues = issues.map(i => {
       if (i.status === "resolved" || i.status === "rejected" || i.status === "under_review") return i;
@@ -569,7 +526,6 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const elapsedMs = nowTime - new Date(i.reportedAt).getTime();
       let modified = false;
 
-      // Rule 1: Auto-escalate unresolved high/critical issues after threshold
       if ((i.severity === "high" || i.severity === "critical") && i.status !== "escalated" && elapsedMs > thresholdMs) {
         nextStatus = "escalated";
         nextHistory.push({
@@ -590,8 +546,6 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         modified = true;
       }
 
-      // Rule 2: Chronic Zone Detection
-      // Find nearby issues in the same 200m radius of the same category reported in last 90 days
       const sameCategoryNearby = issues.filter(other => {
         if (other.id === i.id || other.category !== i.category) return false;
         const dist = getHaversineDistance(i.location.lat, i.location.lng, other.location.lat, other.location.lng);
@@ -639,10 +593,10 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     if (logsCreated.length > 0) {
-      saveIssues(updatedIssues);
-      saveLogs([...logsCreated, ...agentLogs]);
+      set({ issues: updatedIssues, agentLogs: [...logsCreated, ...agentLogs] });
+      localStorage.setItem("fixit_issues", JSON.stringify(updatedIssues));
+      localStorage.setItem("fixit_agent_logs", JSON.stringify([...logsCreated, ...agentLogs]));
     } else {
-      // Just record a heartbeat logs
       const heartbeatLog: AgentLog = {
         id: `log_heartbeat_${Date.now()}`,
         timestamp: new Date().toISOString(),
@@ -652,11 +606,12 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         details: "🤖 Sweep cycle completed. No outstanding delays detected in remaining categories.",
         automated: true
       };
-      saveLogs([heartbeatLog, ...agentLogs]);
+      set({ agentLogs: [heartbeatLog, ...agentLogs] });
+      localStorage.setItem("fixit_agent_logs", JSON.stringify([heartbeatLog, ...agentLogs]));
     }
-  };
+  },
 
-  const clearAllData = () => {
+  clearAllData: () => {
     localStorage.removeItem("fixit_issues");
     localStorage.removeItem("fixit_agent_logs");
     localStorage.removeItem("fixit_users");
@@ -667,44 +622,20 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const seeded = generateSeedIssues();
     const seededLogs = generateSeedAgentLogs();
-    setIssues(seeded);
-    setAgentLogs(seededLogs);
-    setUsers(SEED_USERS);
-    setCurrentUser(SEED_USERS[0]);
-    setWarRoomActive(false);
-    setOfflineQueue([]);
-    setIsOnline(true);
+
+    set({
+      issues: seeded,
+      agentLogs: seededLogs,
+      users: SEED_USERS,
+      currentUser: SEED_USERS[0],
+      warRoomActive: false,
+      offlineQueue: [],
+      isOnline: true
+    });
 
     localStorage.setItem("fixit_issues", JSON.stringify(seeded));
     localStorage.setItem("fixit_agent_logs", JSON.stringify(seededLogs));
     localStorage.setItem("fixit_users", JSON.stringify(SEED_USERS));
     localStorage.setItem("fixit_current_user", JSON.stringify(SEED_USERS[0]));
-  };
-
-  return (
-    <IssuesContext.Provider value={{
-      issues,
-      agentLogs,
-      users,
-      currentUser,
-      warRoomActive,
-      warRoomArea,
-      offlineQueue,
-      isOnline,
-      addIssue,
-      verifyIssue,
-      upvoteIssue,
-      flagFakeIssue,
-      addComment,
-      adoptIssue,
-      resolveIssue,
-      triggerWarRoom,
-      deactivateWarRoom,
-      runAgentLoop,
-      clearAllData,
-      processOfflineQueue
-    }}>
-      {children}
-    </IssuesContext.Provider>
-  );
-};
+  }
+}));

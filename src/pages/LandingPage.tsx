@@ -1,12 +1,12 @@
 import React from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { Shield, Flame, Radio, AlertOctagon } from 'lucide-react';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
 import { getHaversineDistance } from '../utils/seedData';
 import { IssueDetailPanel } from '../components/features/IssueDetailPanel';
 
 export function LandingPage() {
-  const { issues } = useIssuesContext();
+  const issues = useIssuesStore((state) => state.issues);
   const { 
     userLat, 
     userLng, 

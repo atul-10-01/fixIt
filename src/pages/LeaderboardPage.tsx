@@ -1,9 +1,10 @@
 import React from 'react';
 import { Flame } from 'lucide-react';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
 
 export function LeaderboardPage() {
-  const { users, currentUser } = useIssuesContext();
+  const users = useIssuesStore((state) => state.users);
+  const currentUser = useIssuesStore((state) => state.currentUser);
 
   const rankedUsers = [...users].sort((a, b) => b.points - a.points);
 

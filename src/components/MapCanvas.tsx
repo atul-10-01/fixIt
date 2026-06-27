@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Issue, LocationInfo } from '../types';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
 import { Shield, AlertTriangle, Crosshair, ZoomIn, ZoomOut, Search, MapPin } from 'lucide-react';
 import { CITY_CENTERS } from '../utils/seedData';
 
@@ -17,7 +17,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   interactiveSelectCoordinate,
   isSelectingCoordinate = false
 }) => {
-  const { issues, warRoomActive, warRoomArea } = useIssuesContext();
+  const issues = useIssuesStore((state) => state.issues);
+  const warRoomActive = useIssuesStore((state) => state.warRoomActive);
+  const warRoomArea = useIssuesStore((state) => state.warRoomArea);
   const [selectedCity, setSelectedCity] = useState<'Bengaluru' | 'Mumbai' | 'Delhi'>('Bengaluru');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');

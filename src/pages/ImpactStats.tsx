@@ -1,10 +1,10 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
 
 export function ImpactStats() {
-  const { issues } = useIssuesContext();
+  const issues = useIssuesStore((state) => state.issues);
 
   const getCategoryMetrics = () => {
     const cats = issues.reduce((acc: any, curr) => {

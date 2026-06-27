@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Camera, Shield, RefreshCw, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
+import { issuesService } from '../services/issuesService';
 import { CITY_CENTERS } from '../utils/seedData';
 
 export function ReportHazard() {
-  const { addIssue } = useIssuesContext();
+  const addIssue = useIssuesStore((state) => state.addIssue);
   const navigate = useNavigate();
   const { 
     userLat, 
@@ -64,15 +65,7 @@ export function ReportHazard() {
         clearInterval(interval);
         
         // Fetch AI analysis from backend proxy or fallback
-        fetch('/api/analyze-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: "dummy_base64_data",
-            mimeType: "image/jpeg"
-          })
-        })
-        .then(res => res.json())
+        issuesService.analyzeImage("dummy_base64_data", "image/jpeg")
         .then(data => {
           setAiAnalysisResult(data);
           setAiAnalyzing(false);

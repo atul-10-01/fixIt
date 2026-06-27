@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ThumbsUp, AlertTriangle, Share2, Camera, Shield } from 'lucide-react';
-import { useIssuesContext } from '../../context/IssuesContext';
+import { useIssuesStore } from '../../store/useIssuesStore';
 import { Issue } from '../../types';
 import { getHaversineDistance } from '../../utils/seedData';
 import { BeforeAfterSlider } from '../BeforeAfterSlider';
@@ -15,7 +15,12 @@ interface IssueDetailPanelProps {
 }
 
 export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDetailPanelProps) {
-  const { addComment, adoptIssue, upvoteIssue, flagFakeIssue, verifyIssue, resolveIssue } = useIssuesContext();
+  const addComment = useIssuesStore((state) => state.addComment);
+  const adoptIssue = useIssuesStore((state) => state.adoptIssue);
+  const upvoteIssue = useIssuesStore((state) => state.upvoteIssue);
+  const flagFakeIssue = useIssuesStore((state) => state.flagFakeIssue);
+  const verifyIssue = useIssuesStore((state) => state.verifyIssue);
+  const resolveIssue = useIssuesStore((state) => state.resolveIssue);
   const [commentText, setCommentText] = useState('');
   const [showLetter, setShowLetter] = useState(false);
   const [showTweet, setShowTweet] = useState(false);

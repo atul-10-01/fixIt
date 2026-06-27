@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
 import { MapCanvas } from '../components/MapCanvas';
 import { IssueDetailPanel } from '../components/features/IssueDetailPanel';
 
 export function MapExplorer() {
-  const { issues } = useIssuesContext();
+  const issues = useIssuesStore((state) => state.issues);
   const { 
     userLat, 
     userLng, 

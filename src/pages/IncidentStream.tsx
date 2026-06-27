@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
 import { IssueDetailPanel } from '../components/features/IssueDetailPanel';
 
 export function IncidentStream() {
-  const { issues } = useIssuesContext();
+  const issues = useIssuesStore((state) => state.issues);
   const { 
     userLat, 
     userLng, 

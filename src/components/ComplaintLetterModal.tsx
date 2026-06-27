@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Issue } from '../types';
 import { X, Copy, Download, FileText, Check, Loader2 } from 'lucide-react';
+import { issuesService } from '../services/issuesService';
 
 interface ComplaintLetterModalProps {
   issue: Issue;
@@ -19,26 +20,17 @@ export const ComplaintLetterModal: React.FC<ComplaintLetterModalProps> = ({ issu
     setCopied(false);
 
     try {
-      const response = await fetch('/api/generate-complaint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: issue.title,
-          description: issue.description,
-          category: issue.category,
-          severity: issue.severity,
-          verificationCount: issue.verificationCount,
-          location: issue.location,
-          daysUnresolved: Math.max(1, Math.floor((Date.now() - new Date(issue.reportedAt).getTime()) / (3600 * 24 * 1000))),
-          reporterName: issue.anonymous ? `Anonymous Citizen #${issue.id.slice(-4)}` : issue.reportedByName
-        })
+      const data = await issuesService.generateComplaint({
+        title: issue.title,
+        description: issue.description,
+        category: issue.category,
+        severity: issue.severity,
+        verificationCount: issue.verificationCount,
+        location: issue.location,
+        daysUnresolved: Math.max(1, Math.floor((Date.now() - new Date(issue.reportedAt).getTime()) / (3600 * 24 * 1000))),
+        reporterName: issue.anonymous ? `Anonymous Citizen #${issue.id.slice(-4)}` : issue.reportedByName
       });
 
-      if (!response.ok) {
-        throw new Error('Grievance API network error');
-      }
-
-      const data = await response.json();
       setComplaintText(data.text);
     } catch (err) {
       console.error("Grievance letter generation error:", err);

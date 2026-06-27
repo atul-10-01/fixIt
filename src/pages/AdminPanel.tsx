@@ -1,17 +1,15 @@
 import React from 'react';
 import { AlertOctagon, RefreshCw } from 'lucide-react';
-import { useIssuesContext } from '../context/IssuesContext';
+import { useIssuesStore } from '../store/useIssuesStore';
 
 export function AdminPanel() {
-  const { 
-    agentLogs, 
-    warRoomActive, 
-    warRoomArea, 
-    runAgentLoop, 
-    clearAllData, 
-    triggerWarRoom, 
-    deactivateWarRoom 
-  } = useIssuesContext();
+  const agentLogs = useIssuesStore((state) => state.agentLogs);
+  const warRoomActive = useIssuesStore((state) => state.warRoomActive);
+  const warRoomArea = useIssuesStore((state) => state.warRoomArea);
+  const triggerWarRoom = useIssuesStore((state) => state.triggerWarRoom);
+  const deactivateWarRoom = useIssuesStore((state) => state.deactivateWarRoom);
+  const runAgentLoop = useIssuesStore((state) => state.runAgentLoop);
+  const clearAllData = useIssuesStore((state) => state.clearAllData);
 
   return (
     <div className="flex-grow p-6 max-w-7xl mx-auto w-full flex flex-col gap-8">
