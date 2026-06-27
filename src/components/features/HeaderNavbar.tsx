@@ -12,8 +12,8 @@ export function HeaderNavbar() {
   return (
     <>
       <header className="bg-zinc-950 border-b border-zinc-850 px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
-        <Link to="/" className="flex items-center gap-3 cursor-pointer">
-          <div className="w-9 h-9 bg-red-600 flex items-center justify-center font-black text-black tracking-tighter text-lg rounded">
+        <Link to="/" className="flex items-center gap-3 cursor-pointer order-1 flex-shrink-0">
+          <div className="w-9 h-9 bg-red-600 flex items-center justify-center font-black text-black tracking-tighter text-lg rounded-full">
             FI
           </div>
           <div>
@@ -27,7 +27,7 @@ export function HeaderNavbar() {
         </Link>
 
         {/* Global Navigation links */}
-        <nav className="flex flex-wrap items-center gap-1 sm:gap-4 md:gap-6 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        <nav className="flex items-center gap-4 md:gap-6 text-[10px] font-bold uppercase tracking-widest text-zinc-500 overflow-x-auto whitespace-nowrap no-scrollbar w-full md:w-auto py-2 md:py-0 border-t border-zinc-900 md:border-t-0 order-3 md:order-2">
           <NavLink 
             to="/"
             className={({ isActive }) => 
@@ -87,7 +87,7 @@ export function HeaderNavbar() {
         </nav>
 
         {/* User badge points bar */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 order-2 md:order-3 flex-shrink-0">
           <select 
             value={i18n.language} 
             onChange={(e) => {

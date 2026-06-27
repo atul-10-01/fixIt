@@ -126,6 +126,26 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     isDragging.current = false;
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isSelectingCoordinate || e.touches.length !== 1) return;
+    isDragging.current = true;
+    const touch = e.touches[0];
+    dragStart.current = { x: touch.clientX - pan.x, y: touch.clientY - pan.y };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current || isSelectingCoordinate || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    setPan({
+      x: touch.clientX - dragStart.current.x,
+      y: touch.clientY - dragStart.current.y
+    });
+  };
+
+  const handleTouchEnd = () => {
+    isDragging.current = false;
+  };
+
   const handleMapClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!mapContainerRef.current) return;
     
@@ -227,9 +247,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     <div className="flex flex-col h-full bg-[#0d0d0f] border border-zinc-800 rounded-lg overflow-hidden">
       {/* Top Map bar controllers */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-[#121214] border-b border-zinc-800">
-        <div className="flex items-center gap-2">
-          <MapPin className="text-red-500 w-5 h-5" />
-          <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Target Quadrant:</span>
+        <div className="flex items-center gap-2 max-w-full flex-grow sm:flex-grow-0">
+          <MapPin className="text-red-500 w-5 h-5 shrink-0" />
+          <span className="hidden sm:inline text-xs font-black uppercase tracking-widest text-zinc-400">Target Quadrant:</span>
           <select 
             value={selectedCity} 
             onChange={(e) => {
@@ -237,21 +257,21 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
               handleResetPan();
             }}
             disabled={warRoomActive}
-            className="bg-black text-white text-xs font-bold uppercase border border-zinc-800 px-3 py-1.5 focus:outline-none focus:border-red-600 rounded cursor-pointer"
+            className="bg-black text-white text-xs font-bold uppercase border border-zinc-800 px-3 py-1.5 focus:outline-none focus:border-red-600 rounded cursor-pointer max-w-full flex-grow sm:flex-grow-0"
           >
             <option value="Bengaluru">Bengaluru (Koramangala)</option>
             <option value="Mumbai">Mumbai (Bandra West)</option>
             <option value="Delhi">Delhi (Saket)</option>
           </select>
           {warRoomActive && (
-            <span className="text-[10px] bg-red-600 text-white font-black px-2.5 py-1 uppercase tracking-wider rounded pulse-indicator-critical">
+            <span className="text-[10px] bg-red-600 text-white font-black px-2.5 py-1 uppercase tracking-wider rounded pulse-indicator-critical shrink-0">
               War Room Locked
             </span>
           )}
         </div>
 
         {/* Search */}
-        <div className="relative w-64">
+        <div className="relative w-full sm:w-64">
           <input
             type="text"
             placeholder="Search local blocks or tags..."
@@ -263,11 +283,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
           <select 
             value={filterCategory} 
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="bg-black text-zinc-400 text-[10px] uppercase border border-zinc-800 px-2 py-1 rounded focus:outline-none"
+            className="bg-black text-zinc-400 text-[10px] uppercase border border-zinc-800 px-2 py-1.5 rounded focus:outline-none flex-grow sm:flex-grow-0"
           >
             <option value="all">All Issues</option>
             <option value="pothole">Potholes</option>
@@ -282,7 +302,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           <select 
             value={filterSeverity} 
             onChange={(e) => setFilterSeverity(e.target.value)}
-            className="bg-black text-zinc-400 text-[10px] uppercase border border-zinc-800 px-2 py-1 rounded focus:outline-none"
+            className="bg-black text-zinc-400 text-[10px] uppercase border border-zinc-800 px-2 py-1.5 rounded focus:outline-none flex-grow sm:flex-grow-0"
           >
             <option value="all">All Severity</option>
             <option value="low">Low Severity</option>
@@ -294,8 +314,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       </div>
 
       {/* Layer selector floating badges */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-black/40 border-b border-zinc-800/60 overflow-x-auto">
-        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mr-2">Layer Overlays:</span>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-black/40 border-b border-zinc-800/60 w-full">
+        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mr-2 shrink-0">Layer Overlays:</span>
         <button 
           onClick={() => setShowPins(!showPins)}
           className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 border transition-colors rounded ${showPins ? 'bg-zinc-800 border-red-600 text-white' : 'border-zinc-800 text-zinc-600 hover:text-white'}`}
@@ -335,6 +355,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         className={`relative flex-grow h-[450px] select-none ${isSelectingCoordinate ? 'cursor-crosshair' : isDragging.current ? 'cursor-grabbing' : 'cursor-grab'} overflow-hidden bg-[#070708]`}
       >
         {isSelectingCoordinate && (
@@ -353,7 +376,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
             transformOrigin: 'top left',
             transition: isDragging.current ? 'none' : 'transform 0.15s ease-out'
           }}
-          className="w-full h-full min-w-[800px] min-h-[500px]"
+          className="absolute top-0 left-0 min-w-[800px] min-h-[500px]"
         >
           {/* Background grid mesh */}
           <defs>
