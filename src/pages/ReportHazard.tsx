@@ -118,7 +118,9 @@ export function ReportHazard() {
         suggestedAuthority: aiAnalysisResult.suggestedAuthority,
         confidence: aiAnalysisResult.confidence,
         authenticityScore: exifWarning ? 0.42 : aiAnalysisResult.authenticityScore || 0.95,
-        authenticityReasoning: exifWarning ? "EXIF metadata missing. Frame took over 6 months ago or is screenshot." : aiAnalysisResult.authenticityReasoning || "Original mobile sensor footprint detected."
+        authenticityReasoning: exifWarning ? "EXIF metadata missing. Frame took over 6 months ago or is screenshot." : aiAnalysisResult.authenticityReasoning || "Original mobile sensor footprint detected.",
+        estimatedResolutionDays: aiAnalysisResult.estimatedResolutionDays || 3,
+        urgencyKeywords: aiAnalysisResult.urgencyKeywords || []
       },
       tags: aiAnalysisResult.urgencyKeywords || ["civic", aiAnalysisResult.category],
       anonymous: isAnonymous,

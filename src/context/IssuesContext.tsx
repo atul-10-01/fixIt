@@ -10,7 +10,7 @@ interface IssuesContextType {
   warRoomActive: boolean;
   warRoomArea: string;
   offlineQueue: any[];
-  addIssue: (issueData: Omit<Issue, 'id' | 'reportedBy' | 'reportedByName' | 'reportedByAvatar' | 'reportedAt' | 'verifications' | 'verificationCount' | 'upvotes' | 'comments' | 'agentHistory' | 'escalatedAt' | 'resolvedAt' | 'resolutionTimeHours' | 'adoptedBy' | 'adoptedDate' | 'isChronic' | 'isFake' | 'flagCount' | 'flags'>) => void;
+  addIssue: (issueData: Omit<Issue, 'id' | 'status' | 'reportedBy' | 'reportedByName' | 'reportedByAvatar' | 'reportedAt' | 'verifications' | 'verificationCount' | 'upvotes' | 'comments' | 'agentHistory' | 'escalatedAt' | 'resolvedAt' | 'resolutionTimeHours' | 'adoptedBy' | 'adoptedDate' | 'isChronic' | 'isFake' | 'flagCount' | 'flags' | 'resolvedPhoto'>) => void;
   verifyIssue: (issueId: string, userLat: number, userLng: number) => { success: boolean; message: string };
   upvoteIssue: (issueId: string) => void;
   flagFakeIssue: (issueId: string) => void;
@@ -175,6 +175,7 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newIssue: Issue = {
         ...item,
         id,
+        status: 'reported',
         verifications: [],
         verificationCount: 0,
         upvotes: [],
@@ -219,6 +220,7 @@ export const IssuesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const newIssue: Issue = {
       ...issueData,
       id,
+      status: 'reported',
       reportedBy: currentUser.uid,
       reportedByName: currentUser.displayName,
       reportedByAvatar: currentUser.photoURL,
