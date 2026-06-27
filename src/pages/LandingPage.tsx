@@ -1,11 +1,13 @@
 import React from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { Shield, Flame, Radio, AlertOctagon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useIssuesStore } from '../store/useIssuesStore';
 import { getHaversineDistance } from '../utils/seedData';
 import { IssueDetailPanel } from '../components/features/IssueDetailPanel';
 
 export function LandingPage() {
+  const { t } = useTranslation();
   const issues = useIssuesStore((state) => state.issues);
   const { 
     userLat, 
@@ -35,11 +37,11 @@ export function LandingPage() {
         {/* Left Side Bold Headlines */}
         <div className="md:col-span-7 flex flex-col justify-center">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-red-600 mb-2 block">
-            Hyperlocal Civic Infrastructure Network
+            {t('landing.subtitle')}
           </span>
           
-          <h1 className="text-6xl sm:text-7xl md:text-[110px] font-black tracking-tighter uppercase leading-[0.85] mb-6 text-white">
-            Heroic<br/>Action<br/><span className="text-red-600">Needed.</span>
+          <h1 className="text-4xl sm:text-5xl md:text-[75px] font-black tracking-tighter uppercase leading-[0.9] mb-6 text-white">
+            {t('landing.title')}
           </h1>
           
           <div className="flex items-center gap-4 mb-8">
@@ -50,21 +52,21 @@ export function LandingPage() {
           </div>
 
           <p className="text-zinc-500 text-xs sm:text-sm max-w-xl mb-8 uppercase font-bold leading-relaxed">
-            FixIt leverages Google Gemini image diagnostics, geofenced GPS validation, and automated Twitter pressure to identify, verify, and resolve recurring community hazards bypass-routing official neglect.
+            {t('landing.description')}
           </p>
-
+ 
           <div className="flex flex-wrap gap-4">
             <Link 
               to="/report"
               className="bg-white text-black font-black uppercase text-xs py-4 px-8 tracking-widest hover:bg-red-600 hover:text-white transition-colors duration-200 rounded shadow-lg text-center"
             >
-              Report Hazard Now
+              {t('landing.btn_report')}
             </Link>
             <Link 
               to="/map"
               className="border border-zinc-700 font-black uppercase text-xs py-4 px-8 hover:border-white text-white tracking-widest transition-colors duration-200 rounded text-center"
             >
-              Inspect Area Map
+              {t('landing.btn_map')}
             </Link>
           </div>
         </div>

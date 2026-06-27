@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useIssuesStore } from '../store/useIssuesStore';
 import { IssueDetailPanel } from '../components/features/IssueDetailPanel';
 
 export function IncidentStream() {
+  const { t } = useTranslation();
   const issues = useIssuesStore((state) => state.issues);
   const { 
     userLat, 
@@ -53,15 +55,15 @@ export function IncidentStream() {
     <div className="flex-grow p-6 max-w-7xl mx-auto w-full flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <span className="text-[9px] font-black uppercase tracking-widest text-red-600 block mb-1">Civic Ledger Archives</span>
-          <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Active Grievance Stream</h2>
+          <span className="text-[9px] font-black uppercase tracking-widest text-red-600 block mb-1">{t('feed.subtitle')}</span>
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-white">{t('feed.title')}</h2>
         </div>
         
         <Link 
           to="/report"
           className="bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs py-2.5 px-5 tracking-widest transition-colors rounded text-center"
         >
-          Log New Incident
+          {t('feed.btn_new')}
         </Link>
       </div>
 
@@ -69,7 +71,7 @@ export function IncidentStream() {
       <div className="bg-zinc-950 border border-zinc-905 p-3.5 rounded-lg">
         <input 
           type="text" 
-          placeholder="Filter logs by title, street, keyword..." 
+          placeholder={t('feed.search_placeholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="bg-black border border-zinc-800 text-xs px-3.5 py-2.5 rounded focus:outline-none uppercase font-bold text-white w-full"
@@ -83,11 +85,11 @@ export function IncidentStream() {
         <div className="md:col-span-3 space-y-6">
           <div className="bg-zinc-950 border border-zinc-850 p-5 rounded-lg space-y-6">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pb-3 border-b border-zinc-900">
-              Audit Filters
+              {t('feed.filters_title')}
             </h3>
 
             <div>
-              <label className="block text-[8px] font-black text-zinc-500 uppercase tracking-wider mb-2">Category Select</label>
+              <label className="block text-[8px] font-black text-zinc-500 uppercase tracking-wider mb-2">{t('feed.filters_category')}</label>
               <div className="flex flex-col gap-1 text-[9.5px] uppercase font-bold text-zinc-400">
                 {['all', 'pothole', 'water_leakage', 'streetlight', 'garbage', 'flooding', 'encroachment', 'road_damage'].map(cat => (
                   <button 
@@ -102,7 +104,7 @@ export function IncidentStream() {
             </div>
 
             <div>
-              <label className="block text-[8px] font-black text-zinc-500 uppercase tracking-wider mb-2">Severity Level</label>
+              <label className="block text-[8px] font-black text-zinc-500 uppercase tracking-wider mb-2">{t('feed.filters_severity')}</label>
               <div className="flex flex-col gap-1 text-[9.5px] uppercase font-bold text-zinc-400">
                 {['all', 'low', 'medium', 'high', 'critical'].map(sev => (
                   <button 
@@ -123,8 +125,8 @@ export function IncidentStream() {
           {filteredIssues.length === 0 ? (
             <div className="py-24 text-center border border-dashed border-zinc-800 rounded-lg">
               <AlertTriangle className="w-12 h-12 text-zinc-700 mx-auto mb-4 animate-bounce" />
-              <p className="text-xs font-black uppercase text-zinc-400 tracking-wider">No Incidents Found Matching Filters</p>
-              <p className="text-[10px] text-zinc-500 uppercase font-bold mt-1">Clear filters or file a fresh safety complaint.</p>
+              <p className="text-xs font-black uppercase text-zinc-400 tracking-wider">{t('feed.no_incidents')}</p>
+              <p className="text-[10px] text-zinc-500 uppercase font-bold mt-1">{t('feed.clear_filters')}</p>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 gap-6">

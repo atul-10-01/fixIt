@@ -147,6 +147,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
         isFake: false,
         flagCount: 0,
         flags: [],
+        isChronic: false,
         resolvedPhoto: null
       };
       updatedIssues.unshift(newIssue);
@@ -196,6 +197,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       isFake: false,
       flagCount: 0,
       flags: [],
+      isChronic: false,
       resolvedPhoto: null
     };
 

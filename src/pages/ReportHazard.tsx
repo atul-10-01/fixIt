@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Camera, Shield, RefreshCw, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useIssuesStore } from '../store/useIssuesStore';
 import { issuesService } from '../services/issuesService';
 import { CITY_CENTERS } from '../utils/seedData';
+import { issueFormSchema, aiAnalysisResponseSchema } from '../schemas';
 
 export function ReportHazard() {
+  const { t } = useTranslation();
   const addIssue = useIssuesStore((state) => state.addIssue);
   const navigate = useNavigate();
   const { 
@@ -32,6 +35,7 @@ export function ReportHazard() {
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiStep, setAiStep] = useState(0);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<any>(null);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   // Handle image upload with simulated EXIF checking
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +60,7 @@ export function ReportHazard() {
   const triggerAIAnalysis = () => {
     setAiAnalyzing(true);
     setAiStep(1);
+    setFormErrors([]);
     
     let current = 1;
     const interval = setInterval(() => {
@@ -67,9 +72,17 @@ export function ReportHazard() {
         // Fetch AI analysis from backend proxy or fallback
         issuesService.analyzeImage("dummy_base64_data", "image/jpeg")
         .then(data => {
-          setAiAnalysisResult(data);
-          setAiAnalyzing(false);
-          setReportStep(2); // Jump to Edit/Review AI results step
+          try {
+            const parsedData = aiAnalysisResponseSchema.parse(data);
+            setAiAnalysisResult(parsedData);
+            setAiAnalyzing(false);
+            setReportStep(2); // Jump to Edit/Review AI results step
+          } catch (zodErr: any) {
+            console.error("Zod API Verification Error:", zodErr);
+            setFormErrors(["Gemini diagnostic response verification failed. Please try re-uploading."]);
+            setAiAnalyzing(false);
+            setReportStep(1);
+          }
         })
         .catch(err => {
           console.error("AI Analysis proxy error:", err);
@@ -81,6 +94,23 @@ export function ReportHazard() {
 
   const submitNewReport = () => {
     if (!aiAnalysisResult) return;
+
+    setFormErrors([]);
+
+    const validationResult = issueFormSchema.safeParse({
+      title: aiAnalysisResult.title,
+      description: aiAnalysisResult.description,
+      category: aiAnalysisResult.category,
+      severityScore: aiAnalysisResult.severityScore,
+      uploadedImage: uploadedImage,
+      manualAddress: manualAddress
+    });
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map(err => err.message);
+      setFormErrors(errors);
+      return;
+    }
 
     const loc = {
       lat: selectedLat || userLat,
@@ -96,13 +126,13 @@ export function ReportHazard() {
     }
 
     addIssue({
-      title: aiAnalysisResult.title || `Simulated civic infraction`,
-      description: aiAnalysisResult.description || `Citizens complained about structural concerns at location block.`,
-      category: aiAnalysisResult.category,
-      severity: aiAnalysisResult.severityScore >= 8 ? 'critical' : aiAnalysisResult.severityScore >= 6 ? 'high' : aiAnalysisResult.severityScore >= 4 ? 'medium' : 'low',
-      severityScore: aiAnalysisResult.severityScore,
+      title: validationResult.data.title || `Simulated civic infraction`,
+      description: validationResult.data.description || `Citizens complained about structural concerns at location block.`,
+      category: validationResult.data.category,
+      severity: validationResult.data.severityScore >= 8 ? 'critical' : validationResult.data.severityScore >= 6 ? 'high' : validationResult.data.severityScore >= 4 ? 'medium' : 'low',
+      severityScore: validationResult.data.severityScore,
       location: loc,
-      images: [uploadedImage],
+      images: [validationResult.data.uploadedImage],
       aiAnalysis: {
         category: aiAnalysisResult.category,
         severityScore: aiAnalysisResult.severityScore,
@@ -133,21 +163,21 @@ export function ReportHazard() {
   return (
     <div className="flex-grow p-6 max-w-2xl mx-auto w-full flex flex-col justify-center gap-6">
       <div>
-        <span className="text-[9px] font-black uppercase tracking-widest text-red-600 block mb-1">Incident Intake Portal</span>
-        <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Submit Community Diagnostic Report</h2>
+        <span className="text-[9px] font-black uppercase tracking-widest text-red-600 block mb-1">{t('report.subtitle')}</span>
+        <h2 className="text-3xl font-black uppercase tracking-tighter text-white">{t('report.title')}</h2>
         <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1 leading-normal">
-          Files are evaluated client-side for metadata and processed secure server-side through Gemini 2.0 Vision modules.
+          {t('report.description')}
         </p>
       </div>
 
       {/* Stepper Wizard Indicator */}
       <div className="flex justify-between items-center bg-zinc-950 border border-zinc-850 p-4 rounded-lg">
         <div className="flex gap-4 text-[9.5px] font-black uppercase tracking-wider">
-          <span className={reportStep === 1 ? 'text-red-500' : 'text-zinc-600'}>01. Media Capture</span>
+          <span className={reportStep === 1 ? 'text-red-500' : 'text-zinc-600'}>01. {t('report.step_media')}</span>
           <span className="text-zinc-700">//</span>
-          <span className={reportStep === 2 ? 'text-red-500' : 'text-zinc-600'}>02. AI Verification Review</span>
+          <span className={reportStep === 2 ? 'text-red-500' : 'text-zinc-600'}>02. {t('report.step_review')}</span>
           <span className="text-zinc-700">//</span>
-          <span className="text-zinc-600">03. Lock In Submit</span>
+          <span className="text-zinc-600">03. {t('report.step_submit')}</span>
         </div>
         <span className="text-[9px] font-mono text-zinc-500 font-bold uppercase">STEP {reportStep} / 3</span>
       </div>
@@ -155,6 +185,16 @@ export function ReportHazard() {
       {/* STEP 1: CAPTURE MEDIA */}
       {reportStep === 1 && !aiAnalyzing && (
         <div className="bg-zinc-950 border border-zinc-850 p-8 rounded-lg flex flex-col gap-6 shadow-xl">
+          {formErrors.length > 0 && (
+            <div className="bg-red-950/40 border border-red-800/60 p-4 rounded flex flex-col gap-2">
+              <span className="text-[10px] font-black uppercase text-red-500 tracking-wider">⚠️ Hazard Report Validation Error</span>
+              <ul className="list-disc list-inside text-[9.5px] font-mono text-red-400 font-bold uppercase space-y-1">
+                {formErrors.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           
           {/* Drag and Drop */}
           <div className="border border-dashed border-zinc-800 hover:border-red-600/60 p-10 text-center rounded transition-all cursor-pointer relative bg-black/40">
@@ -165,9 +205,9 @@ export function ReportHazard() {
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <Camera className="w-10 h-10 text-zinc-600 mx-auto mb-4 animate-pulse" />
-            <p className="text-xs font-black uppercase text-white tracking-widest">Select Incident Photograph</p>
+            <p className="text-xs font-black uppercase text-white tracking-widest">{t('report.upload_title')}</p>
             <p className="text-[9px] text-zinc-500 uppercase font-bold mt-1.5 leading-normal">
-              Drag/drop file or click to trigger camera capture (Enforces physical camera checks)
+              {t('report.upload_desc')}
             </p>
           </div>
 
@@ -176,9 +216,9 @@ export function ReportHazard() {
             <div className="flex items-start gap-2.5">
               <Shield className="text-red-500 w-4 h-4 mt-0.5 shrink-0" />
               <div>
-                <h4 className="text-[10px] font-black uppercase text-zinc-300 tracking-wider">Advocate Safety Protection Act</h4>
+                <h4 className="text-[10px] font-black uppercase text-zinc-300 tracking-wider">{t('report.safety_title')}</h4>
                 <p className="text-[9.5px] text-zinc-500 font-bold uppercase leading-normal">
-                  If reporting dangerous encroachments or critical issues under harassment threats, check 'Report Anonymously'. We store a secure hashed token to protect coordinates source.
+                  {t('report.safety_desc')}
                 </p>
               </div>
             </div>
@@ -192,7 +232,7 @@ export function ReportHazard() {
                 className="accent-red-600 rounded cursor-pointer"
               />
               <label htmlFor="anonCheck" className="text-[9px] font-black uppercase text-zinc-400 tracking-wider cursor-pointer">
-                🛡️ REPORT ANONYMOUSLY (Client hashed token storage)
+                {t('report.anon_check')}
               </label>
             </div>
           </div>
@@ -200,13 +240,13 @@ export function ReportHazard() {
           {/* Coordinate Override selector on Map drop */}
           <div className="space-y-2">
             <label className="block text-[8.5px] font-black text-zinc-500 uppercase tracking-widest">
-              Telemetry Address Override:
+              {t('report.address_override')}
             </label>
             <input
               type="text"
               value={manualAddress}
               onChange={(e) => setManualAddress(e.target.value)}
-              placeholder="Enter street lane landmark (Auto-detected if empty)"
+              placeholder={t('report.address_placeholder')}
               className="w-full bg-black border border-zinc-800 p-3 text-xs text-zinc-300 focus:outline-none focus:border-red-600 uppercase font-bold tracking-tight rounded"
             />
             <div className="text-[8.5px] font-mono text-zinc-600 uppercase">
@@ -259,6 +299,16 @@ export function ReportHazard() {
               Confidence: {Math.round(aiAnalysisResult.confidence * 100)}%
             </span>
           </div>
+          {formErrors.length > 0 && (
+            <div className="bg-red-950/40 border border-red-800/60 p-4 rounded flex flex-col gap-2">
+              <span className="text-[10px] font-black uppercase text-red-500 tracking-wider">⚠️ Hazard Report Validation Error</span>
+              <ul className="list-disc list-inside text-[9.5px] font-mono text-red-400 font-bold uppercase space-y-1">
+                {formErrors.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Visual Image Preview and EXIF results */}
           <div className="grid sm:grid-cols-2 gap-4">

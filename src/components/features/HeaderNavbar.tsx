@@ -1,8 +1,10 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useIssuesStore } from '../../store/useIssuesStore';
 
 export function HeaderNavbar() {
+  const { t, i18n } = useTranslation();
   const warRoomActive = useIssuesStore((state) => state.warRoomActive);
   const offlineQueue = useIssuesStore((state) => state.offlineQueue);
   const currentUser = useIssuesStore((state) => state.currentUser);
@@ -19,7 +21,7 @@ export function HeaderNavbar() {
               {warRoomActive ? 'EMERGENCY SHIELD ACTIVE' : 'ACTIVE COMMUNITY PROTOCOL'}
             </span>
             <div className="text-xl font-black tracking-tighter uppercase leading-none text-white">
-              FixIt<span className="text-red-500">.</span>
+              {t('nav.title')}<span className="text-red-500">.</span>
             </div>
           </div>
         </Link>
@@ -32,7 +34,7 @@ export function HeaderNavbar() {
               `pb-1 border-b-2 hover:text-white transition-all ${isActive ? 'border-red-600 text-white' : 'border-transparent'}`
             }
           >
-            /01. Home
+            /01. {t('nav.home')}
           </NavLink>
           <NavLink 
             to="/map"
@@ -40,7 +42,7 @@ export function HeaderNavbar() {
               `pb-1 border-b-2 hover:text-white transition-all ${isActive ? 'border-red-600 text-white' : 'border-transparent'}`
             }
           >
-            /02. Grid Map
+            /02. {t('nav.map')}
           </NavLink>
           <NavLink 
             to="/incidents"
@@ -48,7 +50,7 @@ export function HeaderNavbar() {
               `pb-1 border-b-2 hover:text-white transition-all ${isActive ? 'border-red-600 text-white' : 'border-transparent'}`
             }
           >
-            /03. Incidents
+            /03. {t('nav.feed')}
           </NavLink>
           <NavLink 
             to="/report"
@@ -56,7 +58,7 @@ export function HeaderNavbar() {
               `pb-1 border-b-2 hover:text-white transition-all ${isActive ? 'border-red-600 text-white' : 'border-transparent'}`
             }
           >
-            /04. Report Hazard
+            /04. {t('nav.report')}
           </NavLink>
           <NavLink 
             to="/stats"
@@ -64,7 +66,7 @@ export function HeaderNavbar() {
               `pb-1 border-b-2 hover:text-white transition-all ${isActive ? 'border-red-600 text-white' : 'border-transparent'}`
             }
           >
-            /05. Impact Stats
+            /05. {t('nav.stats')}
           </NavLink>
           <NavLink 
             to="/leaderboard"
@@ -72,7 +74,7 @@ export function HeaderNavbar() {
               `pb-1 border-b-2 hover:text-white transition-all ${isActive ? 'border-red-600 text-white' : 'border-transparent'}`
             }
           >
-            /06. Leaderboard
+            /06. {t('nav.leaderboard')}
           </NavLink>
           <NavLink 
             to="/admin"
@@ -80,15 +82,29 @@ export function HeaderNavbar() {
               `pb-1 border-b-2 hover:text-white transition-all ${isActive ? 'border-red-600 text-white animate-pulse' : 'border-transparent'}`
             }
           >
-            /07. Agent Core
+            /07. {t('nav.admin')}
           </NavLink>
         </nav>
 
         {/* User badge points bar */}
         <div className="flex items-center gap-3">
+          <select 
+            value={i18n.language} 
+            onChange={(e) => {
+              const lang = e.target.value;
+              i18n.changeLanguage(lang);
+              localStorage.setItem('fixit_lang', lang);
+            }}
+            className="bg-black text-zinc-400 text-[9px] uppercase font-black border border-zinc-800 px-2 py-1.5 focus:outline-none focus:border-red-600 rounded cursor-pointer transition-colors"
+          >
+            <option value="en">EN</option>
+            <option value="kn">KN</option>
+            <option value="hi">HI</option>
+          </select>
+
           {offlineQueue.length > 0 && (
             <div className="bg-red-600/15 border border-red-500 text-red-500 text-[9px] font-black px-2 py-1 uppercase tracking-wider rounded animate-pulse">
-              Queued Offline: {offlineQueue.length}
+              {t('nav.offline_queue')}: {offlineQueue.length}
             </div>
           )}
 

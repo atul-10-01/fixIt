@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Issue } from '../types';
 import { X, Copy, Download, FileText, Check, Loader2 } from 'lucide-react';
 import { issuesService } from '../services/issuesService';
+import { complaintResponseSchema } from '../schemas';
 
 interface ComplaintLetterModalProps {
   issue: Issue;
@@ -31,7 +32,8 @@ export const ComplaintLetterModal: React.FC<ComplaintLetterModalProps> = ({ issu
         reporterName: issue.anonymous ? `Anonymous Citizen #${issue.id.slice(-4)}` : issue.reportedByName
       });
 
-      setComplaintText(data.text);
+      const parsedData = complaintResponseSchema.parse(data);
+      setComplaintText(parsedData.text);
     } catch (err) {
       console.error("Grievance letter generation error:", err);
       // Hard fallback matching standard styling
