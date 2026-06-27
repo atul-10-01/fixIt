@@ -1,0 +1,8 @@
+{
+  "name": "FixIt",
+  "description": "A hyperlocal civic issue reporting and resolution platform featuring real-time severity tracking, citizen verification, and an autonomous AI escalation engine. Your Friendly Neighborhood Hero.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
