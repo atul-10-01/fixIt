@@ -44,12 +44,15 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
     reader.readAsDataURL(file);
   };
 
-  const handleVerifyClick = () => {
+  const handleVerifyClick = async () => {
     if (!verifyAllowed) {
       alert(`Geofenced Verification Locked: You must be within 500m of this hazard. Currently: ${Math.round(distance)}m away.`);
       return;
     }
-    verifyIssue(issue.id, userLat, userLng);
+    const res = await verifyIssue(issue.id, userLat, userLng);
+    if (!res.success) {
+      alert(res.message);
+    }
   };
 
   return (
@@ -128,10 +131,10 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
             
             {resolutionAllowed ? (
               <form 
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   if (!resPhoto) return;
-                  const res = resolveIssue(issue.id, resPhoto, userLat, userLng);
+                  const res = await resolveIssue(issue.id, resPhoto, userLat, userLng);
                   alert(res.message);
                   if (res.success) {
                     setResPhoto('');

@@ -113,14 +113,14 @@ export function HeaderNavbar() {
             className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 px-3 py-1.5 border border-zinc-800 rounded cursor-pointer transition-colors"
           >
             <img 
-              src={currentUser.photoURL} 
-              alt={currentUser.displayName} 
+              src={currentUser?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"} 
+              alt={currentUser?.displayName || "Citizen"} 
               referrerPolicy="no-referrer"
               className="w-5 h-5 rounded-full border border-red-500" 
             />
             <div className="text-left leading-none">
-              <span className="text-[9px] text-zinc-400 font-black uppercase block tracking-wider">{currentUser.displayName.split(' ')[0]}</span>
-              <span className="text-[10px] text-white font-mono font-black">{currentUser.points} PTS <span className="text-red-500">[{currentUser.level.toUpperCase()}]</span></span>
+              <span className="text-[9px] text-zinc-400 font-black uppercase block tracking-wider">{(currentUser?.displayName || "Citizen").split(' ')[0]}</span>
+              <span className="text-[10px] text-white font-mono font-black">{currentUser?.points || 0} PTS <span className="text-red-500">[{(currentUser?.level || "Newcomer").toUpperCase()}]</span></span>
             </div>
           </Link>
         </div>

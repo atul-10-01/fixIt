@@ -4,6 +4,7 @@ import { useIssuesStore } from '../store/useIssuesStore';
 
 export function UserProfilePage() {
   const currentUser = useIssuesStore((state) => state.currentUser);
+  const logoutUser = useIssuesStore((state) => state.logoutUser);
   const issues = useIssuesStore((state) => state.issues);
   const navigate = useNavigate();
   const { setSelectedIssueId } = useOutletContext<{
@@ -14,34 +15,64 @@ export function UserProfilePage() {
 
   return (
     <div className="flex-grow p-6 max-w-4xl mx-auto w-full flex flex-col gap-6">
+      {/* Account controls */}
+      <div className="bg-zinc-950 border border-zinc-850 p-5 rounded-lg flex justify-between items-center gap-4 flex-wrap">
+        <div>
+          <span className="text-[10px] font-black uppercase text-zinc-300 tracking-wider">Account Access Security</span>
+          <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-tight mt-0.5">
+            {currentUser.uid === "user_priya_s" ? "Currently browsing under simulated default citizen profile." : "Logged in via Google Secure Server Authorization."}
+          </p>
+        </div>
+        <div>
+          {currentUser.uid === "user_priya_s" ? (
+            <a 
+              href="/api/auth/google"
+              className="bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white font-black uppercase text-[9.5px] py-2.5 px-4 tracking-widest rounded transition-colors inline-block text-center"
+            >
+              Sign In with Google
+            </a>
+          ) : (
+            <button 
+              onClick={async () => {
+                await logoutUser();
+                navigate('/');
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[9.5px] py-2.5 px-4 tracking-widest rounded transition-colors text-center"
+            >
+              Sign Out / Disconnect
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="bg-zinc-950 border border-zinc-850 p-8 rounded-lg flex flex-col md:flex-row gap-6 items-center">
         <img 
-          src={currentUser.photoURL} 
-          alt={currentUser.displayName} 
+          src={currentUser?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"} 
+          alt={currentUser?.displayName || "Citizen"} 
           referrerPolicy="no-referrer"
           className="w-24 h-24 rounded-full border-2 border-red-500 object-cover shadow-xl" 
         />
         <div className="text-center md:text-left flex-grow">
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-red-500">{currentUser.level} Advocate</span>
-          <h2 className="text-3xl font-black uppercase tracking-tighter text-white">{currentUser.displayName}</h2>
-          <span className="text-[10px] font-mono text-zinc-500 uppercase block tracking-wider mt-1">{currentUser.email} · Corridor: {currentUser.area}</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-red-500">{(currentUser?.level || "Newcomer")} Advocate</span>
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-white">{currentUser?.displayName || "Citizen"}</h2>
+          <span className="text-[10px] font-mono text-zinc-500 uppercase block tracking-wider mt-1">{currentUser?.email || ""} · Corridor: {currentUser?.area || ""}</span>
           
           <div className="flex flex-wrap gap-4 mt-4 justify-center md:justify-start">
             <div className="bg-zinc-900 border border-zinc-850 px-4 py-2 rounded text-center">
               <span className="text-[8px] font-black text-zinc-500 block uppercase">Helpfulness</span>
-              <span className="text-lg font-mono font-black text-emerald-500">{currentUser.stats.helpfulnessScore}</span>
+              <span className="text-lg font-mono font-black text-emerald-500">{currentUser?.stats?.helpfulnessScore || 0}</span>
             </div>
             <div className="bg-zinc-900 border border-zinc-850 px-4 py-2 rounded text-center">
               <span className="text-[8px] font-black text-zinc-500 block uppercase">Reports filed</span>
-              <span className="text-lg font-mono font-black text-white">{currentUser.stats.reportsSubmitted}</span>
+              <span className="text-lg font-mono font-black text-white">{currentUser?.stats?.reportsSubmitted || 0}</span>
             </div>
             <div className="bg-zinc-900 border border-zinc-850 px-4 py-2 rounded text-center">
               <span className="text-[8px] font-black text-zinc-500 block uppercase">Verifications</span>
-              <span className="text-lg font-mono font-black text-white">{currentUser.stats.reportsVerified}</span>
+              <span className="text-lg font-mono font-black text-white">{currentUser?.stats?.reportsVerified || 0}</span>
             </div>
             <div className="bg-zinc-900 border border-zinc-850 px-4 py-2 rounded text-center">
               <span className="text-[8px] font-black text-zinc-500 block uppercase">Resolved</span>
-              <span className="text-lg font-mono font-black text-emerald-500">{currentUser.stats.issuesResolved}</span>
+              <span className="text-lg font-mono font-black text-emerald-500">{currentUser?.stats?.issuesResolved || 0}</span>
             </div>
           </div>
         </div>

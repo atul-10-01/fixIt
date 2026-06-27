@@ -22,11 +22,17 @@ function AppLayout() {
   const warRoomActive = useIssuesStore((state) => state.warRoomActive);
   const setIsOnline = useIssuesStore((state) => state.setIsOnline);
   const processOfflineQueue = useIssuesStore((state) => state.processOfflineQueue);
+  const initializeStore = useIssuesStore((state) => state.initializeStore);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
 
   // Simulated GPS for coordinates validations
   const [userLat, setUserLat] = useState<number>(12.9345);
   const [userLng, setUserLng] = useState<number>(77.6265);
+
+  // Initial load and sync on mount
+  useEffect(() => {
+    initializeStore();
+  }, [initializeStore]);
 
   // Sync network status and process offline queue on mount
   useEffect(() => {
