@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Camera, Shield, RefreshCw, Sparkles, CheckCircle2, AlertTriangle, Navigation, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useIssuesStore } from '../store/useIssuesStore';
 import { issuesService } from '../services/issuesService';
 import { CITY_CENTERS } from '../utils/seedData';
@@ -99,20 +100,23 @@ export function ReportHazard() {
             setReportStep(2); // Jump to Edit/Review AI results step
           } catch (zodErr: any) {
             console.error("Zod API Verification Error:", zodErr);
-            setFormErrors(["Gemini diagnostic response verification failed. Please try re-uploading."]);
+            const errStr = "Gemini diagnostic response verification failed. Please try re-uploading.";
+            setFormErrors([errStr]);
+            toast.error(errStr);
             setAiAnalyzing(false);
             setReportStep(1);
           }
         })
         .catch(err => {
           console.error("AI Analysis proxy error:", err);
+          toast.error("Gemini AI API connection error.");
           setAiAnalyzing(false);
         });
       }
     }, 1200);
   };
 
-  const submitNewReport = () => {
+  const submitNewReport = async () => {
     if (!aiAnalysisResult) return;
 
     setFormErrors([]);
@@ -129,6 +133,7 @@ export function ReportHazard() {
     if (!validationResult.success) {
       const errors = validationResult.error.issues.map(err => err.message);
       setFormErrors(errors);
+      errors.forEach(err => toast.error(err));
       return;
     }
 
@@ -148,7 +153,7 @@ export function ReportHazard() {
       anonymousToken = `anon_sha256_${Math.floor(Math.random() * 900000 + 100000)}`;
     }
 
-    addIssue({
+    const newIssueId = await addIssue({
       title: validationResult.data.title || `Simulated civic infraction`,
       description: validationResult.data.description || `Citizens complained about structural concerns at location block.`,
       category: validationResult.data.category,
@@ -179,7 +184,11 @@ export function ReportHazard() {
     setUploadedImage('');
     setAiAnalysisResult(null);
     setReportStep(1);
-    setSelectedIssueId(null);
+    if (newIssueId) {
+      setSelectedIssueId(newIssueId);
+    } else {
+      setSelectedIssueId(null);
+    }
     navigate('/incidents');
   };
 

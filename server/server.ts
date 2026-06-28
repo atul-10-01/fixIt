@@ -384,7 +384,7 @@ app.get("/api/auth/me", optionalAuth, (req: AuthRequest, res) => {
 
 // 5. REST APIs for Issues
 // PUBLIC fields allowed on leaderboard — no email, no internal _id
-const PUBLIC_USER_FIELDS = 'uid displayName photoURL points level badges area joinedAt';
+const PUBLIC_USER_FIELDS = 'uid displayName photoURL points level badges area joinedAt stats';
 
 // Strip reportedBy/reportedByName/reportedByAvatar from anonymous issues before sending to client
 function sanitizeIssueForClient(issue: any) {
@@ -450,6 +450,13 @@ app.post("/api/issues", requireAuth, incidentUploadSpamLimiter(), validateBody(C
     });
 
     user.points += 10;
+    if (user.stats) {
+      user.stats.reportsSubmitted = (user.stats.reportsSubmitted || 0) + 1;
+      user.stats.helpfulnessScore = (user.stats.reportsVerified || 0) * 15 + (user.stats.issuesResolved || 0) * 25 + user.stats.reportsSubmitted * 10;
+    }
+    if (newIssue.location?.area) {
+      user.area = newIssue.location.area;
+    }
     let nextLevel = user.level;
     const nextPoints = user.points;
     if (nextPoints <= 50) nextLevel = 'Newcomer';
@@ -533,11 +540,37 @@ app.put("/api/issues/:id/verify", requireAuth, validateBody(VerifyIssueSchema), 
     await issue.save();
 
     user.points += 5;
+    if (user.stats) {
+      user.stats.reportsVerified = (user.stats.reportsVerified || 0) + 1;
+      user.stats.helpfulnessScore = user.stats.reportsVerified * 15 + (user.stats.issuesResolved || 0) * 25 + (user.stats.reportsSubmitted || 0) * 10;
+    }
+    if (issue.location?.area) {
+      user.area = issue.location.area;
+    }
+    let nextLevel = user.level;
+    if (user.points <= 50) nextLevel = 'Newcomer';
+    else if (user.points <= 150) nextLevel = 'Observer';
+    else if (user.points <= 350) nextLevel = 'Reporter';
+    else if (user.points <= 700) nextLevel = 'Investigator';
+    else if (user.points <= 1200) nextLevel = 'Guardian';
+    else nextLevel = 'CivicHero';
+    user.level = nextLevel;
     await user.save();
 
     const reporter = await User.findOne({ uid: issue.reportedBy });
     if (reporter) {
       reporter.points += 15;
+      if (reporter.stats) {
+        reporter.stats.helpfulnessScore = (reporter.stats.reportsVerified || 0) * 15 + (reporter.stats.issuesResolved || 0) * 25 + (reporter.stats.reportsSubmitted || 0) * 10;
+      }
+      let rLevel = reporter.level;
+      if (reporter.points <= 50) rLevel = 'Newcomer';
+      else if (reporter.points <= 150) rLevel = 'Observer';
+      else if (reporter.points <= 350) rLevel = 'Reporter';
+      else if (reporter.points <= 700) rLevel = 'Investigator';
+      else if (reporter.points <= 1200) rLevel = 'Guardian';
+      else rLevel = 'CivicHero';
+      reporter.level = rLevel;
       await reporter.save();
     }
 
@@ -559,10 +592,17 @@ app.put("/api/issues/:id/upvote", requireAuth, async (req: AuthRequest, res) => 
     const hasUpvoted = issue.upvotes.includes(user.uid);
     if (hasUpvoted) {
       issue.upvotes = issue.upvotes.filter(uid => uid !== user.uid);
+      if (user.stats) {
+        user.stats.upvotesGiven = Math.max(0, (user.stats.upvotesGiven || 0) - 1);
+      }
     } else {
       issue.upvotes.push(user.uid);
+      if (user.stats) {
+        user.stats.upvotesGiven = (user.stats.upvotesGiven || 0) + 1;
+      }
     }
 
+    await user.save();
     await issue.save();
     res.json(issue);
   } catch (err) {
@@ -695,11 +735,37 @@ app.put("/api/issues/:id/resolve", requireAuth, validateBody(ResolveIssueSchema)
     await issue.save();
 
     user.points += 15;
+    if (user.stats) {
+      user.stats.issuesResolved = (user.stats.issuesResolved || 0) + 1;
+      user.stats.helpfulnessScore = (user.stats.reportsVerified || 0) * 15 + user.stats.issuesResolved * 25 + (user.stats.reportsSubmitted || 0) * 10;
+    }
+    if (issue.location?.area) {
+      user.area = issue.location.area;
+    }
+    let nextLevel = user.level;
+    if (user.points <= 50) nextLevel = 'Newcomer';
+    else if (user.points <= 150) nextLevel = 'Observer';
+    else if (user.points <= 350) nextLevel = 'Reporter';
+    else if (user.points <= 700) nextLevel = 'Investigator';
+    else if (user.points <= 1200) nextLevel = 'Guardian';
+    else nextLevel = 'CivicHero';
+    user.level = nextLevel;
     await user.save();
 
     const reporter = await User.findOne({ uid: issue.reportedBy });
     if (reporter) {
       reporter.points += 25;
+      if (reporter.stats) {
+        reporter.stats.helpfulnessScore = (reporter.stats.reportsVerified || 0) * 15 + (reporter.stats.issuesResolved || 0) * 25 + (reporter.stats.reportsSubmitted || 0) * 10;
+      }
+      let rLevel = reporter.level;
+      if (reporter.points <= 50) rLevel = 'Newcomer';
+      else if (reporter.points <= 150) rLevel = 'Observer';
+      else if (reporter.points <= 350) rLevel = 'Reporter';
+      else if (reporter.points <= 700) rLevel = 'Investigator';
+      else if (reporter.points <= 1200) rLevel = 'Guardian';
+      else rLevel = 'CivicHero';
+      reporter.level = rLevel;
       await reporter.save();
     }
 
@@ -751,7 +817,8 @@ async function bootstrap() {
         level: u.level,
         badges: u.badges,
         area: u.area,
-        joinedAt: new Date(u.joinedAt)
+        joinedAt: new Date(u.joinedAt),
+        stats: u.stats
       });
     }
     

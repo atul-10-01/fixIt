@@ -20,6 +20,19 @@ export function IncidentStream() {
     setSelectedIssueId: (id: string | null) => void;
   }>();
 
+  // Scroll to details drawer on selection
+  React.useEffect(() => {
+    if (selectedIssueId) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById('issue-detail-scroller');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedIssueId]);
+
   // Local filter states
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
@@ -187,7 +200,7 @@ export function IncidentStream() {
 
       {/* Selected detail drawer under list if selected */}
       {activeIssue && (
-        <div className="bg-black border border-zinc-850 p-6 rounded-lg mt-8">
+        <div id="issue-detail-scroller" className="bg-black border border-zinc-850 p-6 rounded-lg mt-8">
           <div className="flex justify-between items-center mb-4">
             <span className="text-xs font-black uppercase tracking-widest text-zinc-500">Incident Details Core</span>
             <button onClick={() => setSelectedIssueId(null)} className="text-[9px] font-black uppercase tracking-wider text-red-500">

@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { useIssuesStore } from './store/useIssuesStore';
 import { HeaderNavbar } from './components/features/HeaderNavbar';
 import { LegalAidWidget } from './components/LegalAidWidget';
@@ -103,6 +104,7 @@ function AppLayout() {
 
   return (
     <div className={`min-h-screen flex flex-col ${warRoomActive ? 'border-4 border-red-600/60' : ''} bg-zinc-950 text-white`}>
+      <Toaster theme="dark" position="bottom-right" richColors />
       {showLocationModal && (
         <LocationPermissionModal
           onAllow={handleAllowLocation}

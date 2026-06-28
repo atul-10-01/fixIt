@@ -58,7 +58,7 @@ interface IssuesState {
   setIsOnline: (online: boolean) => void;
   initializeStore: () => Promise<void>;
   logoutUser: () => Promise<void>;
-  addIssue: (issueData: Omit<Issue, 'id' | 'status' | 'reportedBy' | 'reportedByName' | 'reportedByAvatar' | 'reportedAt' | 'verifications' | 'verificationCount' | 'upvotes' | 'comments' | 'agentHistory' | 'escalatedAt' | 'resolvedAt' | 'resolutionTimeHours' | 'adoptedBy' | 'adoptedDate' | 'isChronic' | 'isFake' | 'flagCount' | 'flags' | 'resolvedPhoto'>) => Promise<void>;
+  addIssue: (issueData: Omit<Issue, 'id' | 'status' | 'reportedBy' | 'reportedByName' | 'reportedByAvatar' | 'reportedAt' | 'verifications' | 'verificationCount' | 'upvotes' | 'comments' | 'agentHistory' | 'escalatedAt' | 'resolvedAt' | 'resolutionTimeHours' | 'adoptedBy' | 'adoptedDate' | 'isChronic' | 'isFake' | 'flagCount' | 'flags' | 'resolvedPhoto'>) => Promise<string | undefined>;
   verifyIssue: (issueId: string, userLat: number, userLng: number) => Promise<{ success: boolean; message: string }>;
   upvoteIssue: (issueId: string) => Promise<void>;
   flagFakeIssue: (issueId: string) => Promise<void>;
@@ -179,6 +179,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       }
       const remoteUsers = await issuesService.fetchLeaderboard();
       set({ users: remoteUsers });
+      return newIssue.id;
     } catch (err) {
       console.error("Failed to create issue:", err);
       // Fallback to queue if request fails

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ThumbsUp, AlertTriangle, Share2, Camera, Shield } from 'lucide-react';
+import { toast } from 'sonner';
 import { useIssuesStore } from '../../store/useIssuesStore';
 import { Issue } from '../../types';
 import { getHaversineDistance } from '../../utils/seedData';
@@ -15,6 +16,7 @@ interface IssueDetailPanelProps {
 }
 
 export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDetailPanelProps) {
+  const currentUser = useIssuesStore((state) => state.currentUser);
   const addComment = useIssuesStore((state) => state.addComment);
   const adoptIssue = useIssuesStore((state) => state.adoptIssue);
   const upvoteIssue = useIssuesStore((state) => state.upvoteIssue);
@@ -46,12 +48,14 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
 
   const handleVerifyClick = async () => {
     if (!verifyAllowed) {
-      alert(`Geofenced Verification Locked: You must be within 500m of this hazard. Currently: ${Math.round(distance)}m away.`);
+      toast.error(`Geofenced Verification Locked: You must be within 500m of this hazard. Currently: ${Math.round(distance)}m away.`);
       return;
     }
     const res = await verifyIssue(issue.id, userLat, userLng);
     if (!res.success) {
-      alert(res.message);
+      toast.error(res.message);
+    } else {
+      toast.success(res.message);
     }
   };
 
@@ -103,7 +107,7 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
           <button
             onClick={() => {
               flagFakeIssue(issue.id);
-              alert("Incident flagged. Admin audits will review media integrity.");
+              toast.success("Incident flagged. Admin audits will review media integrity.");
             }}
             className="px-4 py-3 border border-zinc-800 hover:border-red-600/40 rounded text-[10px] font-black uppercase tracking-wider text-red-500/70 hover:text-red-500 flex items-center gap-1.5"
           >
@@ -112,7 +116,7 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
           </button>
 
           {/* Tweet auto amplificator */}
-          {issue.verificationCount >= 3 && (
+          {(issue.verificationCount >= 3 || (currentUser && issue.reportedBy === currentUser.uid)) && (
             <button
               onClick={() => setShowTweet(true)}
               className="flex-grow flex items-center justify-center gap-2 bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white font-black uppercase text-[10px] py-3 tracking-widest rounded"
@@ -135,9 +139,11 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
                   e.preventDefault();
                   if (!resPhoto) return;
                   const res = await resolveIssue(issue.id, resPhoto, userLat, userLng);
-                  alert(res.message);
                   if (res.success) {
+                    toast.success(res.message);
                     setResPhoto('');
+                  } else {
+                    toast.error(res.message);
                   }
                 }}
                 className="space-y-4"
@@ -181,6 +187,15 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
           <h2 className="text-xl font-black uppercase text-white leading-tight tracking-tight">{issue.title}</h2>
           <span className="text-[9px] font-mono text-zinc-500 uppercase block tracking-wider mt-1">{issue.location.address} · Area: {issue.location.area}</span>
         </div>
+
+        {issue.description && (
+          <div className="bg-zinc-950 border border-zinc-850 p-4 rounded-lg">
+            <h4 className="text-[9px] font-black uppercase text-zinc-500 tracking-wider mb-1.5">Description Summary</h4>
+            <p className="text-[11px] text-zinc-300 font-bold uppercase leading-relaxed font-mono">
+              {issue.description}
+            </p>
+          </div>
+        )}
 
         {/* Pipeline horizontal indicator */}
         <div className="bg-zinc-950 border border-zinc-850 p-4 rounded flex justify-between items-center text-[8.5px] font-mono font-bold uppercase tracking-wider text-zinc-500">
@@ -247,12 +262,33 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
 
           <p className="text-[10px] text-zinc-400 font-mono font-bold uppercase leading-normal">{issue.aiAnalysis.authenticityReasoning}</p>
 
-          <div className="grid grid-cols-2 gap-4 text-[9px] font-mono font-bold uppercase text-zinc-500 pt-1.5">
+          <div className="grid grid-cols-2 gap-4 text-[9px] font-mono font-bold uppercase text-zinc-500 pt-1.5 pb-2.5 border-b border-zinc-900">
             <div>Confidence score: <span className="text-white font-black">{Math.round(issue.aiAnalysis.confidence * 100)}%</span></div>
             <div>Authenticity match: <span className="text-white font-black">{Math.round(issue.aiAnalysis.authenticityScore * 100)}%</span></div>
             <div>Impact Radius: <span className="text-white font-black">{issue.aiAnalysis.estimatedImpactRadius}m</span></div>
             <div>Suggested Authority: <span className="text-white font-black leading-none">{issue.aiAnalysis.suggestedAuthority}</span></div>
+            <div>Severity Score: <span className="text-white font-black">{issue.severityScore}/10</span></div>
+            <div>Est. Resolution: <span className="text-white font-black">{issue.aiAnalysis.estimatedResolutionDays} days</span></div>
           </div>
+
+          {issue.aiAnalysis.severityReasoning && (
+            <div className="text-[9.5px] text-zinc-400 font-mono font-bold uppercase pt-1.5">
+              Severity Reasoning: <span className="text-zinc-300 font-black">{issue.aiAnalysis.severityReasoning}</span>
+            </div>
+          )}
+
+          {issue.aiAnalysis.urgencyKeywords && issue.aiAnalysis.urgencyKeywords.length > 0 && (
+            <div className="text-[9px] font-mono font-bold uppercase text-zinc-500 pt-2 border-t border-zinc-900 flex flex-wrap gap-1.5 items-center">
+              <span className="shrink-0">Urgency Keywords:</span>
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {issue.aiAnalysis.urgencyKeywords.map((kw, i) => (
+                  <span key={i} className="bg-zinc-900 text-zinc-300 px-2 py-0.5 rounded text-[8px] border border-zinc-800 tracking-wider">
+                    {kw}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Comments Feed Thread */}

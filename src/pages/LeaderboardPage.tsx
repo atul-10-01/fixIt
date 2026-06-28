@@ -58,7 +58,7 @@ export function LeaderboardPage() {
                   <div className="text-right leading-none">
                     <span className="text-xs font-black text-white font-mono block">{usr.points} PTS</span>
                     <span className="text-[7.5px] text-zinc-500 font-mono block uppercase tracking-wider mt-1">
-                      {usr.stats.reportsSubmitted} Reports / {usr.stats.reportsVerified} Verified
+                      {usr.stats?.reportsSubmitted ?? 0} Reports / {usr.stats?.reportsVerified ?? 0} Verified
                     </span>
                   </div>
                 </div>
@@ -76,12 +76,12 @@ export function LeaderboardPage() {
           {/* Badges grids */}
           <div className="grid grid-cols-2 gap-4">
             {[
-              { id: "First Report", label: "First Report", desc: "Submitted initial incident validation record", unlocked: currentUser.badges.includes("First Report") },
-              { id: "On Fire", label: "On Fire", desc: "Submitted 5+ reports in a single week block", unlocked: currentUser.badges.includes("On Fire") },
-              { id: "Sharpshooter", label: "Sharpshooter", desc: "Had 10+ reports successfully validated by peers", unlocked: currentUser.badges.includes("Sharpshooter") },
-              { id: "Community Pillar", label: "Community Pillar", desc: "Verified 50+ third-party reports", unlocked: currentUser.badges.includes("Community Pillar") },
-              { id: "Pioneer", label: "Pioneer", desc: "First to report within a new quadrant corridor", unlocked: currentUser.badges.includes("Pioneer") },
-              { id: "Quick Responder", label: "Quick Responder", desc: "Report successfully resolved in under 24hrs", unlocked: currentUser.badges.includes("Quick Responder") }
+              { id: "First Report", label: "First Report", desc: "Submitted initial incident validation record", unlocked: currentUser?.badges?.includes("First Report") || false },
+              { id: "On Fire", label: "On Fire", desc: "Submitted 5+ reports in a single week block", unlocked: currentUser?.badges?.includes("On Fire") || false },
+              { id: "Sharpshooter", label: "Sharpshooter", desc: "Had 10+ reports successfully validated by peers", unlocked: currentUser?.badges?.includes("Sharpshooter") || false },
+              { id: "Community Pillar", label: "Community Pillar", desc: "Verified 50+ third-party reports", unlocked: currentUser?.badges?.includes("Community Pillar") || false },
+              { id: "Pioneer", label: "Pioneer", desc: "First to report within a new quadrant corridor", unlocked: currentUser?.badges?.includes("Pioneer") || false },
+              { id: "Quick Responder", label: "Quick Responder", desc: "Report successfully resolved in under 24hrs", unlocked: currentUser?.badges?.includes("Quick Responder") || false }
             ].map(badge => (
               <div 
                 key={badge.id}

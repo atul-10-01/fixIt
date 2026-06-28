@@ -10,6 +10,13 @@ export interface IUserDocument extends Document {
   badges: string[];
   area?: string;
   joinedAt: Date;
+  stats?: {
+    reportsSubmitted: number;
+    reportsVerified: number;
+    issuesResolved: number;
+    upvotesGiven: number;
+    helpfulnessScore: number;
+  };
 }
 
 const UserSchema = new Schema<IUserDocument>({
@@ -25,7 +32,14 @@ const UserSchema = new Schema<IUserDocument>({
   },
   badges: { type: [String], default: [] },
   area: { type: String, default: '' },
-  joinedAt: { type: Date, default: Date.now }
+  joinedAt: { type: Date, default: Date.now },
+  stats: {
+    reportsSubmitted: { type: Number, default: 0 },
+    reportsVerified: { type: Number, default: 0 },
+    issuesResolved: { type: Number, default: 0 },
+    upvotesGiven: { type: Number, default: 0 },
+    helpfulnessScore: { type: Number, default: 0 }
+  }
 });
 
 export const User = mongoose.model<IUserDocument>('User', UserSchema);

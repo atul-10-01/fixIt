@@ -92,7 +92,7 @@ export interface UserProfile {
   photoURL: string;
   email: string;
   joinedAt: string;
-  stats: UserStats;
+  stats?: UserStats;
   points: number;
   level: 'Newcomer' | 'Observer' | 'Reporter' | 'Investigator' | 'Guardian' | 'CivicHero';
   badges: string[];
