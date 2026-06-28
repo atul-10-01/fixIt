@@ -120,6 +120,12 @@ To protect user identities and prevent exploitation of gamified systems, FixIt i
    - **Risk**: Local storage caching vulnerable to XSS inspection.
    - **Protection**: Purged all active cache files for user accounts, leaderboard profiles, and session states from `localStorage`. A boot migration script auto-wipes legacy cache strings on page refresh.
 
+5. **Multi-Dimensional Spam & Rate Limiting**:
+   - **Risk**: Automated spam bots creating thousands of fake reports, or users spamming requests to drain the Google Gemini API key quota.
+   - **Protection**: 
+     - **General API Limiting**: A custom MongoDB-backed sliding limiter limits all endpoints to `100 requests per 15 minutes` per User ID or IP address.
+     - **Incident Submission Quota**: A specific `incidentUploadSpamLimiter` limits incident reports (`POST /api/issues`) to a maximum of `5 reports per week`. The check queries past issues for BOTH the authenticated `reportedBy` user UID AND the `reporterIp` address, preventing attempts to bypass limits by creating duplicate accounts on the same connection or changing IP addresses under the same account.
+
 ---
 
 ## 🌍 Real GPS Location

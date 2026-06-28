@@ -13,6 +13,7 @@ import { Session } from "./models/session.model";
 import { optionalAuth, requireAuth, AuthRequest } from "./middleware/auth.middleware";
 import { validateBody } from "./middleware/validate.middleware";
 import { CreateIssueSchema, VerifyIssueSchema, CommentSchema, ResolveIssueSchema, AdoptIssueSchema } from "./schemas/issue.schema";
+import { generalRateLimiter, incidentUploadSpamLimiter, getClientIp } from "./middleware/rateLimit.middleware";
 import { generateSeedIssues, SEED_USERS, getHaversineDistance } from "../src/utils/seedData";
 
 dotenv.config();
@@ -25,6 +26,9 @@ app.use(cookieParser());
 
 // Increase JSON body limit for Base64 image transfers
 app.use(express.json({ limit: "50mb" }));
+
+// Mount global API rate limiter (100 requests per 15 mins)
+app.use("/api", optionalAuth, generalRateLimiter(100, 15 * 60 * 1000));
 
 // Initialize Google Gen AI
 const apiKey = process.env.GEMINI_API_KEY;
@@ -398,10 +402,11 @@ app.get("/api/issues", async (req, res) => {
   }
 });
 
-app.post("/api/issues", requireAuth, validateBody(CreateIssueSchema), async (req: AuthRequest, res) => {
+app.post("/api/issues", requireAuth, incidentUploadSpamLimiter(5), validateBody(CreateIssueSchema), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     const issueData = req.body;
+    const clientIp = getClientIp(req);
     const id = `issue_${Date.now()}`;
     
     const newIssue = await Issue.create({
@@ -409,6 +414,7 @@ app.post("/api/issues", requireAuth, validateBody(CreateIssueSchema), async (req
       id,
       status: 'reported',
       reportedBy: user.uid,
+      reporterIp: clientIp,
       // For anonymous reports: store 'Anonymous' in public name/avatar fields.
       // The real uid is kept privately in reportedBy for points & self-verification checks.
       reportedByName: issueData.anonymous ? 'Anonymous' : user.displayName,

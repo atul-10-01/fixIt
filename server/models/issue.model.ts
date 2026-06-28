@@ -64,6 +64,7 @@ export interface IssueDocument extends Document {
   tags: string[];
   exifChecked?: boolean;
   exifWarning?: boolean;
+  reporterIp?: string;
 }
 
 const IssueSchema = new Schema<IssueDocument>({
@@ -88,6 +89,7 @@ const IssueSchema = new Schema<IssueDocument>({
   reportedByName: { type: String, required: true },
   reportedByAvatar: { type: String, required: true },
   reportedAt: { type: Date, default: Date.now },
+  reporterIp: { type: String, index: true },
   verifications: { type: [String], default: [] },
   verificationCount: { type: Number, default: 0 },
   upvotes: { type: [String], default: [] },
