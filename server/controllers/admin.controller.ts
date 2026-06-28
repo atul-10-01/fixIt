@@ -228,8 +228,11 @@ export const adminController = {
         res.status(403).json({ error: "Access denied. Administrator privileges required." });
         return;
       }
-
-      const sessionId = req.cookies?.fixit_sid;
+      const authHeader = req.headers.authorization;
+      let sessionId = "";
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        sessionId = authHeader.split(' ')[1];
+      }
 
       // Store user data to restore
       const currentUid = user.uid;

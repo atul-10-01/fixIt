@@ -7,18 +7,18 @@ import { OAuth2Client } from "google-auth-library";
 import { User } from "../models/user.model";
 import { Session } from "../models/session.model";
 import { AuthRequest } from "../middleware/auth.middleware";
-import { SEED_USERS } from "../../src/utils/seedData";
 
 export const authController = {
   // Google OAuth Authorization initiation redirect
   initiateGoogleAuth: (req: AuthRequest, res: Response) => {
     const redirectUri = process.env.GOOGLE_CALLBACK_URL || "http://localhost:3000/api/auth/google/callback";
     const clientID = process.env.GOOGLE_CLIENT_ID;
+    const origin = (req.query.origin as string) || "";
 
     if (!clientID || clientID === "MY_GOOGLE_CLIENT_ID" || clientID === "") {
       console.log("GOOGLE_CLIENT_ID is placeholder or missing, generating a simulated authentication redirect.");
       const simulatedCode = `mock_auth_code_${Date.now()}`;
-      res.redirect(`${redirectUri}?code=${simulatedCode}&simulated=true`);
+      res.redirect(`${redirectUri}?code=${simulatedCode}&simulated=true&state=${encodeURIComponent(origin)}`);
       return;
     }
 
@@ -28,7 +28,8 @@ export const authController = {
       scope: [
         'https://www.googleapis.com/auth/userinfo.profile',
         'https://www.googleapis.com/auth/userinfo.email'
-      ]
+      ],
+      state: origin
     });
     res.redirect(authUrl);
   },
@@ -36,6 +37,7 @@ export const authController = {
   // Google OAuth Callback token exchanges
   handleGoogleCallback: async (req: AuthRequest, res: Response) => {
     const code = req.query.code as string;
+    const state = req.query.state as string;
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const isSimulated = req.query.simulated === "true"
       || !clientId
@@ -62,7 +64,7 @@ export const authController = {
         
         const { tokens } = await client.getToken(code);
         client.setCredentials(tokens);
-
+ 
         const ticket = await client.verifyIdToken({
           idToken: tokens.id_token!,
           audience: process.env.GOOGLE_CLIENT_ID
@@ -105,32 +107,33 @@ export const authController = {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     await Session.create({ sessionId, uid: dbUser.uid, expiresAt });
 
-    res.cookie("fixit_sid", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
-
-    res.redirect("/");
+    // Redirect user back to the client origin (Vite/Firebase) with token query parameter
+    const redirectOrigin = state && state.startsWith("http") ? state : "";
+    if (redirectOrigin) {
+      const target = redirectOrigin.endsWith("/") ? redirectOrigin : `${redirectOrigin}/`;
+      res.redirect(`${target}?token=${sessionId}`);
+    } else {
+      res.redirect(`/?token=${sessionId}`);
+    }
   },
 
   // Logout session clearance
   logout: async (req: AuthRequest, res: Response) => {
-    const sessionId = req.cookies?.fixit_sid;
+    const authHeader = req.headers.authorization;
+    let sessionId = "";
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      sessionId = authHeader.split(' ')[1];
+    }
+
     if (sessionId) {
       await Session.deleteOne({ sessionId });
     }
-    res.clearCookie("fixit_sid");
-    res.clearCookie("fixit_token");
     res.json({ success: true });
   },
 
   // Query authenticated user state
   getMe: (req: AuthRequest, res: Response) => {
-    if (req.cookies?.fixit_token) {
-      res.clearCookie("fixit_token");
-    }
     if (req.user) {
       res.json(req.user);
     } else {

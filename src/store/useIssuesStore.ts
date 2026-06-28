@@ -88,27 +88,40 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   initializeStore: async () => {
     const { processOfflineQueue } = get();
     try {
-      // 1. Fetch current authenticated profile from server (session-based)
+      // 1. Process session token parameter from OAuth redirect if present
+      const params = new URLSearchParams(window.location.search);
+      const urlToken = params.get('token');
+      if (urlToken) {
+        localStorage.setItem('fixit_session_token', urlToken);
+        // Clear token parameter from the browser URL path for clean aesthetics
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+
+      // 2. Fetch current authenticated profile from server (session-based)
       const user = await issuesService.getMe();
       if (user) {
         set({ currentUser: user });
-        // Do NOT persist currentUser to localStorage — always comes from server session
+      } else {
+        // Clear stale token if session is no longer recognized on the server
+        localStorage.removeItem('fixit_session_token');
+        set({ currentUser: SEED_USERS[0] });
       }
 
-      // 2. Fetch list of issues
+      // 3. Fetch list of issues
       const remoteIssues = await issuesService.fetchIssues();
       if (Array.isArray(remoteIssues)) {
         set({ issues: remoteIssues, isOnline: true });
         localStorage.setItem('fixit_issues', JSON.stringify(remoteIssues));
       }
 
-      // 3. Fetch leaderboard users (in-memory only, no localStorage)
+      // 4. Fetch leaderboard users (in-memory only, no localStorage)
       const remoteUsers = await issuesService.fetchLeaderboard();
       if (Array.isArray(remoteUsers)) {
         set({ users: remoteUsers });
       }
 
-      // 4. Process any pending offline mutations
+      // 5. Process any pending offline mutations
       await processOfflineQueue();
     } catch (err) {
       console.warn('Server offline or unreachable, running in offline fallback mode:', err);
@@ -122,6 +135,8 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
     } catch (err) {
       console.error('Failed to logout API:', err);
     }
+    // Remove local storage token
+    localStorage.removeItem('fixit_session_token');
     // Reset to seed user in-memory; session is cleared server-side
     set({ currentUser: SEED_USERS[0] });
     // Re-fetch issues anonymously

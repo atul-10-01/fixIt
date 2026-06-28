@@ -9,11 +9,20 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
+// Extract session token exclusively from the Authorization Bearer header
+function getSessionId(req: Request): string | undefined {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+  return undefined;
+}
+
 export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const sessionId = req.cookies?.fixit_sid;
+    const sessionId = getSessionId(req);
     if (!sessionId) {
-      res.status(401).json({ error: "Authentication session required. Please sign in." });
+      res.status(401).json({ error: "Authentication token required. Please sign in." });
       return;
     }
 
@@ -23,14 +32,12 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
     });
     
     if (!session) {
-      res.clearCookie("fixit_sid");
       res.status(401).json({ error: "Session expired or invalid. Please sign in again." });
       return;
     }
 
     const user = await User.findOne({ uid: session.uid });
     if (!user) {
-      res.clearCookie("fixit_sid");
       res.status(401).json({ error: "User profile not found. Access denied." });
       return;
     }
@@ -38,13 +45,13 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
     req.user = user;
     next();
   } catch (err) {
-    res.status(401).json({ error: "Invalid session. Please sign in again." });
+    res.status(401).json({ error: "Invalid session token. Please sign in again." });
   }
 };
 
 export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const sessionId = req.cookies?.fixit_sid;
+    const sessionId = getSessionId(req);
     if (sessionId) {
       const session = await Session.findOne({
         sessionId,
@@ -58,7 +65,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
       }
     }
   } catch (err) {
-    // Continue anonymously if session parsing fails
+    // Continue anonymously if token parsing fails
   }
   next();
 };

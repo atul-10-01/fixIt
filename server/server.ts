@@ -5,7 +5,6 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import cookieParser from "cookie-parser";
 import { createServer as createViteServer } from "vite";
 import { User } from "./models/user.model";
 import { Issue } from "./models/issue.model";
@@ -20,11 +19,20 @@ dotenv.config();
 const app = express();
 const PORT = CONFIG.PORT;
 
-// Mount cookie parser middleware
-app.use(cookieParser());
-
 // Increase JSON body limit for Base64 image transfers
 app.use(express.json({ limit: "50mb" }));
+
+// Enable CORS for cross-origin frontend-backend deployments
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
 // Mount global API rate limiter (100 requests per 15 mins) and auth verification
 app.use("/api", optionalAuth, generalRateLimiter());

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useIssuesStore } from '../store/useIssuesStore';
+import api from '../services/api';
 
 export function UserProfilePage() {
   const currentUser = useIssuesStore((state) => state.currentUser);
@@ -26,7 +27,7 @@ export function UserProfilePage() {
         <div>
           {currentUser.uid === "user_priya_s" ? (
             <a 
-              href="/api/auth/google"
+              href={`${api.defaults.baseURL || ''}/api/auth/google?origin=${window.location.origin}`}
               className="bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white font-black uppercase text-[9.5px] py-2.5 px-4 tracking-widest rounded transition-colors inline-block text-center"
             >
               Sign In with Google
