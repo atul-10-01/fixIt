@@ -130,13 +130,13 @@ To protect user identities and prevent exploitation of gamified systems, FixIt i
 
 ## 🌍 Real GPS Location
 
-FixIt now uses the browser **Geolocation API** for true geofenced proximity verification instead of hardcoded coordinates.
+FixIt uses the browser **Geolocation API** for true geofenced proximity verification.
 
-- On first load, a **Location Permission Modal** explains *why* GPS is needed before triggering the browser prompt.
-- If the user **allows**, `watchPosition()` continuously tracks their coordinates.
-- If the user **denies**, they pick from a **city selector** (Bengaluru / Mumbai / Delhi / Gurgaon / Noida) for approximate coordinates.
-- The **Header Navbar** shows a live `🟢 GPS Live` / `🔴 GPS Off` badge reflecting the current state.
-- GPS status is preserved: the `fixit_gps_asked` flag in localStorage prevents re-asking on every visit.
+- **Pre-Prompt Modal**: Explains *why* GPS is required (verifies that confirming citizens are within the 500m geofenced radius) before requesting permissions.
+- **Reporting Gate Lock**: The hazard reporting page is **strictly locked** if location is not authorized yet, presenting a clean button to trigger the browser GPS permission prompt directly from the page.
+- **Automatic Target Quadrant Selection**: Sourced a proximity lookup function inside `MapCanvas.tsx`. On mount/load, the map automatically calculates which city center (Bengaluru / Mumbai / Delhi / Gurgaon / Noida) is closest to the user's active coordinates and **automatically selects and centers on that city's map quadrant**.
+- **Locked GPS Targeting**: The reporting wizard automatically and **exclusively** binds the incident report coordinates to the user's real-time device coordinates (`userLat`, `userLng`). All manual lat/lng coordinate overrides or map pickers have been deprecated to prevent coordinates manipulation.
+- **Live Navbar Status**: Displays `🟢 GPS Live` / `🔴 GPS Off` in the header reflecting permissions.
 
 ---
 

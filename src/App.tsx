@@ -111,7 +111,7 @@ function AppLayout() {
       )}
       <HeaderNavbar gpsStatus={gpsStatus} />
       <main className="flex-grow flex flex-col">
-        <Outlet context={{ userLat: effectiveLat, userLng: effectiveLng, setUserLat: setDevOverrideLat, setUserLng: setDevOverrideLng, selectedIssueId, setSelectedIssueId, gpsStatus }} />
+        <Outlet context={{ userLat: effectiveLat, userLng: effectiveLng, setUserLat: setDevOverrideLat, setUserLng: setDevOverrideLng, selectedIssueId, setSelectedIssueId, gpsStatus, requestPermission }} />
       </main>
       <LegalAidWidget />
       <footer className="bg-zinc-950 border-t border-zinc-900 py-8 px-6 text-center">

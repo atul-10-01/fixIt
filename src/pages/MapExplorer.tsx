@@ -94,6 +94,8 @@ export function MapExplorer() {
           <MapCanvas 
             selectedIssueId={selectedIssueId || undefined} 
             onSelectIssue={(id) => setSelectedIssueId(id)}
+            userLat={userLat}
+            userLng={userLng}
           />
         </div>
 

@@ -1,11 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Camera, Shield, RefreshCw, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Camera, Shield, RefreshCw, Sparkles, CheckCircle2, AlertTriangle, Navigation, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIssuesStore } from '../store/useIssuesStore';
 import { issuesService } from '../services/issuesService';
 import { CITY_CENTERS } from '../utils/seedData';
 import { issueFormSchema, aiAnalysisResponseSchema } from '../schemas';
+
+// Helper to dynamically find which city center is closest to coordinates
+const resolveClosestCity = (lat: number, lng: number) => {
+  let closestCity = 'Bengaluru';
+  let closestDist = Infinity;
+  for (const [cityName, center] of Object.entries(CITY_CENTERS)) {
+    const dist = Math.sqrt(Math.pow(lat - center.lat, 2) + Math.pow(lng - center.lng, 2));
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestCity = cityName;
+    }
+  }
+  return closestCity;
+};
 
 export function ReportHazard() {
   const { t } = useTranslation();
@@ -14,11 +28,15 @@ export function ReportHazard() {
   const { 
     userLat, 
     userLng,
-    setSelectedIssueId
+    setSelectedIssueId,
+    gpsStatus,
+    requestPermission
   } = useOutletContext<{
     userLat: number;
     userLng: number;
     setSelectedIssueId: (id: string | null) => void;
+    gpsStatus?: string;
+    requestPermission: () => void;
   }>();
 
   // Report wizard state
@@ -28,8 +46,6 @@ export function ReportHazard() {
   const [exifWarning, setExifWarning] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [manualAddress, setManualAddress] = useState('');
-  const [selectedLat, setSelectedLat] = useState<number | null>(null);
-  const [selectedLng, setSelectedLng] = useState<number | null>(null);
   
   // AI analysis state
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
@@ -69,8 +85,12 @@ export function ReportHazard() {
       if (current === 4) {
         clearInterval(interval);
         
-        // Fetch AI analysis from backend proxy or fallback
-        issuesService.analyzeImage("dummy_base64_data", "image/jpeg")
+        // Extract real Base64 bytes and MimeType from uploadedImage DataURL
+        const base64Data = uploadedImage.split(',')[1] || uploadedImage;
+        const mimeType = uploadedImage.match(/data:([^;]+);/)?.[1] || "image/jpeg";
+        
+        // Fetch AI analysis from backend proxy
+        issuesService.analyzeImage(base64Data, mimeType)
         .then(data => {
           try {
             const parsedData = aiAnalysisResponseSchema.parse(data);
@@ -112,12 +132,15 @@ export function ReportHazard() {
       return;
     }
 
+    const resolvedCity = resolveClosestCity(userLat, userLng);
+    const cityCenter = CITY_CENTERS[resolvedCity as keyof typeof CITY_CENTERS];
+
     const loc = {
-      lat: selectedLat || userLat,
-      lng: selectedLng || userLng,
-      address: manualAddress || `9B, Cross Road, Koramangala, Bengaluru`,
-      area: "Koramangala",
-      city: "Bengaluru"
+      lat: userLat,
+      lng: userLng,
+      address: manualAddress || `Street No. ${Math.floor(Math.random() * 15) + 1}, ${cityCenter.name}, ${resolvedCity}`,
+      area: cityCenter.name,
+      city: resolvedCity
     };
 
     let anonymousToken = null;
@@ -159,6 +182,26 @@ export function ReportHazard() {
     setSelectedIssueId(null);
     navigate('/incidents');
   };
+
+  // Lock reporting if GPS permission is not determined/granted yet
+  if (gpsStatus === 'idle' || gpsStatus === 'pending') {
+    return (
+      <div className="flex-grow p-6 flex flex-col items-center justify-center text-center max-w-md mx-auto h-full my-auto">
+        <Navigation className="w-12 h-12 text-red-500 animate-pulse mb-6" />
+        <h2 className="text-lg font-black uppercase text-white tracking-widest">GPS Authorization Required</h2>
+        <p className="text-[10px] text-zinc-500 font-bold uppercase mt-2.5 leading-relaxed">
+          FixIt requires location access to report civic incidents. Please allow location permissions in the browser to start, or enable manually below.
+        </p>
+        <button
+          onClick={requestPermission}
+          className="mt-6 w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[11px] tracking-widest py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg border border-red-500/20"
+        >
+          <Navigation className="w-4 h-4" />
+          Allow Location Access
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-grow p-6 max-w-2xl mx-auto w-full flex flex-col justify-center gap-6">
@@ -237,21 +280,31 @@ export function ReportHazard() {
             </div>
           </div>
 
-          {/* Coordinate Override selector on Map drop */}
+          {/* Live GPS Coordinates indicator */}
+          <div className="bg-zinc-900/40 border border-zinc-850 p-4 rounded flex flex-col gap-2.5">
+            <span className="text-[8.5px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-1.5">
+              <Navigation className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+              <span>Locked GPS Target Coordinates</span>
+            </span>
+            <div className="text-xs font-mono text-zinc-300 font-bold tracking-tight">
+              📍 Coordinates: {userLat.toFixed(6)}° N, {userLng.toFixed(6)}° E ({resolveClosestCity(userLat, userLng)})
+            </div>
+            <p className="text-[8px] text-zinc-650 uppercase font-black tracking-widest leading-normal">
+              🛡️ Live GPS reporting is active. Submissions are geolocated directly to your device coordinates to maintain system integrity.
+            </p>
+          </div>
+
           <div className="space-y-2">
             <label className="block text-[8.5px] font-black text-zinc-500 uppercase tracking-widest">
-              {t('report.address_override')}
+              Manual Address Override (Optional Description)
             </label>
             <input
               type="text"
               value={manualAddress}
               onChange={(e) => setManualAddress(e.target.value)}
-              placeholder={t('report.address_placeholder')}
+              placeholder="e.g., Near Block C entrance, opposite Sector 18 metro gate"
               className="w-full bg-black border border-zinc-800 p-3 text-xs text-zinc-300 focus:outline-none focus:border-red-600 uppercase font-bold tracking-tight rounded"
             />
-            <div className="text-[8.5px] font-mono text-zinc-600 uppercase">
-              Your simulated coordinates: {userLat.toFixed(4)}° N, {userLng.toFixed(4)}° E (Near {CITY_CENTERS.Bengaluru.name})
-            </div>
           </div>
         </div>
       )}

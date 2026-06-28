@@ -9,18 +9,40 @@ interface MapCanvasProps {
   onSelectIssue?: (issueId: string) => void;
   interactiveSelectCoordinate?: (lat: number, lng: number, address: string) => void;
   isSelectingCoordinate?: boolean;
+  userLat?: number;
+  userLng?: number;
 }
 
 export const MapCanvas: React.FC<MapCanvasProps> = ({
   selectedIssueId,
   onSelectIssue,
   interactiveSelectCoordinate,
-  isSelectingCoordinate = false
+  isSelectingCoordinate = false,
+  userLat,
+  userLng
 }) => {
   const issues = useIssuesStore((state) => state.issues);
   const warRoomActive = useIssuesStore((state) => state.warRoomActive);
   const warRoomArea = useIssuesStore((state) => state.warRoomArea);
-  const [selectedCity, setSelectedCity] = useState<'Bengaluru' | 'Mumbai' | 'Delhi'>('Bengaluru');
+  const [selectedCity, setSelectedCity] = useState<'Bengaluru' | 'Mumbai' | 'Delhi' | 'Gurgaon' | 'Noida'>('Bengaluru');
+
+  // Auto-select city center closest to user's resolved coordinates on mount / update
+  useEffect(() => {
+    if (userLat && userLng) {
+      // Find closest city
+      let closestCity: 'Bengaluru' | 'Mumbai' | 'Delhi' | 'Gurgaon' | 'Noida' = 'Bengaluru';
+      let closestDist = Infinity;
+      for (const [cityName, center] of Object.entries(CITY_CENTERS)) {
+        const dist = Math.sqrt(Math.pow(userLat - center.lat, 2) + Math.pow(userLng - center.lng, 2));
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestCity = cityName as any;
+        }
+      }
+      setSelectedCity(closestCity);
+    }
+  }, [userLat, userLng]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
@@ -81,7 +103,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     const boundingBox = {
       Bengaluru: { minLat: 12.915, maxLat: 12.955, minLng: 77.605, maxLng: 77.645 },
       Mumbai: { minLat: 19.040, maxLat: 19.080, minLng: 72.805, maxLng: 72.855 },
-      Delhi: { minLat: 28.505, maxLat: 28.545, minLng: 77.195, maxLng: 77.235 }
+      Delhi: { minLat: 28.505, maxLat: 28.545, minLng: 77.195, maxLng: 77.235 },
+      Gurgaon: { minLat: 28.435, maxLat: 28.485, minLng: 77.005, maxLng: 77.045 },
+      Noida: { minLat: 28.515, maxLat: 28.565, minLng: 77.365, maxLng: 77.415 }
     };
 
     const bbox = boundingBox[selectedCity];
@@ -95,7 +119,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     const boundingBox = {
       Bengaluru: { minLat: 12.915, maxLat: 12.955, minLng: 77.605, maxLng: 77.645 },
       Mumbai: { minLat: 19.040, maxLat: 19.080, minLng: 72.805, maxLng: 72.855 },
-      Delhi: { minLat: 28.505, maxLat: 28.545, minLng: 77.195, maxLng: 77.235 }
+      Delhi: { minLat: 28.505, maxLat: 28.545, minLng: 77.195, maxLng: 77.235 },
+      Gurgaon: { minLat: 28.435, maxLat: 28.485, minLng: 77.005, maxLng: 77.045 },
+      Noida: { minLat: 28.515, maxLat: 28.565, minLng: 77.365, maxLng: 77.415 }
     };
 
     const bbox = boundingBox[selectedCity];
@@ -238,6 +264,16 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       { name: "M-Block Circular Ring Road", x1: 100, y1: 250, x2: 700, y2: 250 },
       { name: "D-Block Access Road", x1: 400, y1: 50, x2: 400, y2: 450 },
       { name: "Vasant Marg Bypass", x1: 50, y1: 120, x2: 750, y2: 380 }
+    ],
+    Gurgaon: [
+      { name: "Golf Course Expressway", x1: 50, y1: 150, x2: 750, y2: 150 },
+      { name: "Cyber City Ring Loop", x1: 300, y1: 50, x2: 300, y2: 450 },
+      { name: "Sohna Access Link", x1: 550, y1: 50, x2: 550, y2: 450 }
+    ],
+    Noida: [
+      { name: "Greater Noida Expressway Link", x1: 50, y1: 200, x2: 750, y2: 200 },
+      { name: "Sector 18 Commercial Row", x1: 200, y1: 50, x2: 200, y2: 450 },
+      { name: "Film City Road", x1: 600, y1: 50, x2: 600, y2: 450 }
     ]
   };
 
@@ -262,6 +298,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
             <option value="Bengaluru">Bengaluru (Koramangala)</option>
             <option value="Mumbai">Mumbai (Bandra West)</option>
             <option value="Delhi">Delhi (Saket)</option>
+            <option value="Gurgaon">Gurgaon (Cyber City)</option>
+            <option value="Noida">Noida (Sector 18)</option>
           </select>
           {warRoomActive && (
             <span className="text-[10px] bg-red-600 text-white font-black px-2.5 py-1 uppercase tracking-wider rounded pulse-indicator-critical shrink-0">
@@ -632,7 +670,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         <div className="absolute bottom-3 right-3 z-10 bg-black/85 backdrop-blur-md border border-zinc-800 px-3 py-1.5 rounded text-right pointer-events-none">
           <div className="text-[7.5px] text-zinc-500 uppercase font-black tracking-widest">Selected Ward Coordinate Reference</div>
           <div className="text-[10px] font-mono text-zinc-300 font-bold tracking-tight">
-            {selectedCity === 'Bengaluru' ? '12.9345° N, 77.6265° E' : selectedCity === 'Mumbai' ? '19.0596° N, 72.8295° E' : '28.5244° N, 77.2167° E'}
+            {`${cityCenter.lat.toFixed(4)}° N, ${cityCenter.lng.toFixed(4)}° E`}
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { RateLimit } from '../models/rateLimit.model';
 import { Issue } from '../models/issue.model';
 import { AuthRequest } from './auth.middleware';
+import { CONFIG } from '../config/constants';
 
 /**
  * Extract client IP helper. Looks for proxies, load balancers, and falls back to socket.
@@ -19,7 +20,7 @@ export const getClientIp = (req: Request): string => {
  * Standard API Route Rate Limiting (Persistent MongoDB backed).
  * Limits requests per User ID (if logged in) or Client IP.
  */
-export const generalRateLimiter = (maxRequests: number, windowMs: number) => {
+export const generalRateLimiter = (maxRequests = CONFIG.RATE_LIMIT_MAX, windowMs = CONFIG.RATE_LIMIT_WINDOW_MS) => {
   return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const clientIp = getClientIp(req);
@@ -72,7 +73,7 @@ export const generalRateLimiter = (maxRequests: number, windowMs: number) => {
  * Incident reporting spam protector.
  * Limits account AND client IP to K uploads per week to protect Gemini API quota.
  */
-export const incidentUploadSpamLimiter = (maxPerWeek: number) => {
+export const incidentUploadSpamLimiter = (maxPerWeek = CONFIG.MAX_ISSUES_PER_WEEK) => {
   return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       // 1. Authenticated user checks

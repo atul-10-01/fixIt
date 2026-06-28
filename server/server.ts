@@ -14,12 +14,13 @@ import { optionalAuth, requireAuth, AuthRequest } from "./middleware/auth.middle
 import { validateBody } from "./middleware/validate.middleware";
 import { CreateIssueSchema, VerifyIssueSchema, CommentSchema, ResolveIssueSchema, AdoptIssueSchema } from "./schemas/issue.schema";
 import { generalRateLimiter, incidentUploadSpamLimiter, getClientIp } from "./middleware/rateLimit.middleware";
+import { CONFIG } from "./config/constants";
 import { generateSeedIssues, SEED_USERS, getHaversineDistance } from "../src/utils/seedData";
 
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = CONFIG.PORT;
 
 // Mount cookie parser middleware
 app.use(cookieParser());
@@ -28,7 +29,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: "50mb" }));
 
 // Mount global API rate limiter (100 requests per 15 mins)
-app.use("/api", optionalAuth, generalRateLimiter(100, 15 * 60 * 1000));
+app.use("/api", optionalAuth, generalRateLimiter());
 
 // Initialize Google Gen AI
 const apiKey = process.env.GEMINI_API_KEY;
@@ -74,7 +75,10 @@ app.post("/api/analyze-image", async (req, res) => {
   "authenticityScore": <float 0-1, where 1.0 is definitely a genuine photograph>
 }`;
 
-  if (ai) {
+  // Pre-validate base64 payload format to prevent API errors on dummy/test inputs
+  const isValidBase64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(imageBase64) && imageBase64 !== "dummy_base64_data";
+
+  if (ai && isValidBase64) {
     try {
       console.log("Calling Gemini API for image analysis...");
       const response = await ai.models.generateContent({
@@ -402,7 +406,7 @@ app.get("/api/issues", async (req, res) => {
   }
 });
 
-app.post("/api/issues", requireAuth, incidentUploadSpamLimiter(5), validateBody(CreateIssueSchema), async (req: AuthRequest, res) => {
+app.post("/api/issues", requireAuth, incidentUploadSpamLimiter(), validateBody(CreateIssueSchema), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     const issueData = req.body;
