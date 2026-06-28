@@ -1,3 +1,6 @@
+/**
+ * MongoDB database model schema for tracking user authentication sessions with automatic TTL expiry.
+ */
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface SessionDocument extends Document {

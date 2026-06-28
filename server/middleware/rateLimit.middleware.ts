@@ -1,3 +1,6 @@
+/**
+ * Persistent rate limiting and spam protection middlewares backed by MongoDB.
+ */
 import { Request, Response, NextFunction } from 'express';
 import { RateLimit } from '../models/rateLimit.model';
 import { Issue } from '../models/issue.model';

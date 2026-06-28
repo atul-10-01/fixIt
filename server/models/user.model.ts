@@ -1,3 +1,6 @@
+/**
+ * MongoDB database model schema representing citizen registration profiles, gamification stats, and access roles.
+ */
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUserDocument extends Document {

@@ -1,3 +1,6 @@
+/**
+ * Express middleware verifying user session tokens and attaching user context to requests.
+ */
 import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/user.model';
 import { Session } from '../models/session.model';

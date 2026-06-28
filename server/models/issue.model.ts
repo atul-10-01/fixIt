@@ -1,3 +1,6 @@
+/**
+ * MongoDB database model schema tracking civic incident reports, coordinates, upvotes, and verification logs.
+ */
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IssueDocument extends Document {

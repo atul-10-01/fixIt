@@ -1,3 +1,6 @@
+/**
+ * Express middleware validator factory verifying request body payloads with Zod schemas.
+ */
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema } from 'zod';
 
