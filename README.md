@@ -88,6 +88,34 @@ FixIt leverages a multi-dimensional Google stack across its development lifecycl
 3. **Google AI Studio:** Used as the environment to test, refine, and structure the vision prompts and schema structures before porting to code.
 4. **Antigravity IDE (Google DeepMind):** Used as the agentic programming companion to structure the server into a clean MVC architecture, implement Zod validation guards, and verify the backend sweeper logic.
 5. **Firebase Hosting:** Used for static web app delivery, serving the pre-compiled frontend assets securely from Google Cloud edges.
+6. **Google Fonts:** Plus Jakarta Sans, Inter, and JetBrains Mono fonts integrated into the styling system.
+
+---
+
+## 🛠️ Technologies Utilized
+
+### Frontend
+| Technology | Usage |
+| :--- | :--- |
+| **React 19 + Vite** | Core UI framework and fast build tooling. |
+| **React Router v6** | Client-side routing and navigation. |
+| **Tailwind CSS v4** | Modern component styling and visual customization. |
+| **Zustand** | Light, high-performance state management for issues, filters, and sessions. |
+| **Motion** | Fluid animation library powering the radar and pulse effects. |
+| **react-i18next** | Internationalization module for English and Hindi toggles. |
+| **Recharts** | Interactive dashboard visualizations and trend lines. |
+| **Lucide React** | Scalable UI vector icon set. |
+| **Sonner** | Clean Toast notifications for asynchronous events. |
+
+### Backend
+| Technology | Usage |
+| :--- | :--- |
+| **Node.js + Express** | High-concurrency REST API server. |
+| **MongoDB Atlas** | Cloud database storing issues, users, sessions, and agent sweep logs. |
+| **Mongoose** | Schema-driven Object Data Modeling (ODM). |
+| **Zod** | Strict request body validation guards. |
+| **Docker & Compose** | Containerized builds mirroring production environments locally. |
+| **express-rate-limit** | Built-in security and spam prevention middleware. |
 
 ---
 
@@ -240,6 +268,7 @@ Navigate to the hosted URL: **[https://fixit-500719.web.app](https://fixit-50071
 
 If you wish to configure and run the environment on your local machine:
 
+### Option 1: Standard Node.js Setup
 1. Clone the repository and configure your environment variables in `.env` (refer to `.env.example`).
 2. Install dependencies:
    ```bash
@@ -250,3 +279,14 @@ If you wish to configure and run the environment on your local machine:
    npm run dev
    ```
 4. Access the application in your browser at `http://localhost:3000`.
+
+### Option 2: Docker & Docker Compose Setup
+To run the application in a local containerized environment (mimicking the production container):
+1. Ensure Docker Desktop is installed and running.
+2. Configure your environment variables in the `.env` file at the root.
+3. Build and launch the container:
+   ```bash
+   docker compose up --build
+   ```
+4. Open your browser and access the app at `http://localhost:3000`.
+*(Note: Docker Compose automatically loads keys from the local `.env` and uses the multi-stage [Dockerfile](file:///c:/Users/atulk/Desktop/fixit/Dockerfile) to build and run a production bundle).*
