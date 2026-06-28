@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Issue } from '../types';
 import { X, Send, Check, Twitter } from 'lucide-react';
+import logo from '../../assets/logo.png';
 
 interface TweetPreviewModalProps {
   issue: Issue;
@@ -57,8 +58,8 @@ export const TweetPreviewModal: React.FC<TweetPreviewModalProps> = ({ issue, onC
           {/* Twitter Card simulation */}
           <div className="bg-[#15181c] border border-zinc-800 p-3 sm:p-5 rounded-xl flex gap-2.5 sm:gap-3.5">
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-full bg-red-600/20 border border-red-500 flex items-center justify-center font-black text-white text-xs select-none shrink-0">
-              FI
+            <div className="w-10 h-10 rounded-full bg-red-600/10 border border-red-500/40 flex items-center justify-center shrink-0 overflow-hidden">
+              <img src={logo} alt="FixIt" className="w-7 h-7 object-contain" />
             </div>
 
             {/* Post details */}
