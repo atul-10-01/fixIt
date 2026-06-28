@@ -126,6 +126,20 @@ To protect user identities and prevent exploitation of gamified systems, FixIt i
      - **General API Limiting**: A custom MongoDB-backed sliding limiter limits all endpoints to `100 requests per 15 minutes` per User ID or IP address.
      - **Incident Submission Quota**: A specific `incidentUploadSpamLimiter` limits incident reports (`POST /api/issues`) to a maximum of `5 reports per week`. The check queries past issues for BOTH the authenticated `reportedBy` user UID AND the `reporterIp` address, preventing attempts to bypass limits by creating duplicate accounts on the same connection or changing IP addresses under the same account.
 
+6. **Role-Based Access Control (RBAC) & Presentation Mode Gating**:
+   - **Risk**: Unauthorized users gaining access to administrative control tools (running sweeps, clearing data, triggering emergency war rooms).
+   - **Protection**: 
+     - Added a `role` field (`'citizen' | 'admin'`) to the database User schema.
+     - The `/admin` panel route checks `currentUser.role`. Non-admins are blocked with a detailed security-themed **403 Access Forbidden** screen.
+     - Secure endpoints (like executing sweeps and resets) enforce backend verification.
+     - To facilitate smooth hackathon demos, a **"Simulate Admin Role"** switch is integrated into the header. Toggling it updates the live database user record, enabling presenters to showcase both restricted citizen states and administrator powers.
+
+7. **Backend-level Autonomous Sweeps & Secure Database Reset**:
+   - **Risk**: Client-side simulated log mockups not affecting actual database state, and local resets falling out of sync with MongoDB on refresh.
+   - **Protection**:
+     - **Real Backend Sweeper Engine**: `POST /api/agent/sweep` scans MongoDB, escalating unresolved high priority reports (>48h), merging spatial duplicates (within 100m) combining upvotes and comments, and auto-flagging repeat incident clusters as `🔴 Chronic Zones`.
+     - **Presession-Safe Database Reset**: `POST /api/admin/reset` drops collections and re-seeds MongoDB while keeping the active presenter session ID and role intact, preventing abrupt logouts during live pitches.
+
 ---
 
 ## 🌍 Real GPS Location

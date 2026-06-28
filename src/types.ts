@@ -97,6 +97,7 @@ export interface UserProfile {
   level: 'Newcomer' | 'Observer' | 'Reporter' | 'Investigator' | 'Guardian' | 'CivicHero';
   badges: string[];
   area: string;
+  role?: 'citizen' | 'admin';
 }
 
 export interface AgentLog {

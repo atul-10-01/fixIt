@@ -13,6 +13,7 @@ export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
   const warRoomActive = useIssuesStore((state) => state.warRoomActive);
   const offlineQueue = useIssuesStore((state) => state.offlineQueue);
   const currentUser = useIssuesStore((state) => state.currentUser);
+  const toggleCurrentUserRole = useIssuesStore((state) => state.toggleCurrentUserRole);
 
   return (
     <>
@@ -106,6 +107,20 @@ export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
             <option value="kn">KN</option>
             <option value="hi">HI</option>
           </select>
+
+          {/* Admin Simulation Toggle */}
+          {currentUser && (
+            <button
+              onClick={() => toggleCurrentUserRole()}
+              className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 border transition-all rounded ${
+                currentUser.role === 'admin' 
+                  ? 'bg-red-950/25 border-red-500 text-red-500 hover:bg-red-950/40 hover:border-red-400' 
+                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+              }`}
+            >
+              {currentUser.role === 'admin' ? '🛡️ ADMIN MODE' : '👤 CITIZEN MODE'}
+            </button>
+          )}
 
           {/* GPS Status badge */}
           {gpsStatus !== 'idle' && (

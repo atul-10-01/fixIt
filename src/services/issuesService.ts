@@ -1,5 +1,5 @@
 import api from './api';
-import { Issue, UserProfile } from '../types';
+import { Issue, UserProfile, AgentLog } from '../types';
 
 export interface AnalyzeImageResponse {
   title: string;
@@ -102,6 +102,21 @@ export const issuesService = {
 
   fetchLeaderboard: async (): Promise<UserProfile[]> => {
     const response = await api.get<UserProfile[]>('/api/users');
+    return response.data;
+  },
+
+  toggleRole: async (): Promise<UserProfile> => {
+    const response = await api.put<UserProfile>('/api/users/toggle-role');
+    return response.data;
+  },
+
+  runAgentSweep: async (): Promise<{ success: boolean; logs: AgentLog[]; issues: Issue[] }> => {
+    const response = await api.post<{ success: boolean; logs: AgentLog[]; issues: Issue[] }>('/api/agent/sweep');
+    return response.data;
+  },
+
+  resetDatabase: async (): Promise<{ success: boolean; issues: Issue[]; users: UserProfile[]; currentUser: UserProfile }> => {
+    const response = await api.post<{ success: boolean; issues: Issue[]; users: UserProfile[]; currentUser: UserProfile }>('/api/admin/reset');
     return response.data;
   }
 };

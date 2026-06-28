@@ -3,6 +3,7 @@ import { AlertOctagon, RefreshCw } from 'lucide-react';
 import { useIssuesStore } from '../store/useIssuesStore';
 
 export function AdminPanel() {
+  const currentUser = useIssuesStore((state) => state.currentUser);
   const agentLogs = useIssuesStore((state) => state.agentLogs);
   const warRoomActive = useIssuesStore((state) => state.warRoomActive);
   const warRoomArea = useIssuesStore((state) => state.warRoomArea);
@@ -10,6 +11,32 @@ export function AdminPanel() {
   const deactivateWarRoom = useIssuesStore((state) => state.deactivateWarRoom);
   const runAgentLoop = useIssuesStore((state) => state.runAgentLoop);
   const clearAllData = useIssuesStore((state) => state.clearAllData);
+
+  if (!currentUser || currentUser.role !== 'admin') {
+    return (
+      <div className="flex-grow p-6 max-w-7xl mx-auto w-full flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 animate-fadeIn">
+        <div className="w-20 h-20 bg-red-950/20 border border-red-500/30 rounded-full flex items-center justify-center text-red-500 animate-pulse">
+          <AlertOctagon className="w-10 h-10" />
+        </div>
+        <div className="space-y-2">
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-red-500 block">
+            403 ACCESS FORBIDDEN
+          </span>
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-white">
+            SECURE WARD TERMINAL
+          </h2>
+          <p className="text-[10.5px] text-zinc-500 font-bold uppercase leading-normal max-w-md mx-auto">
+            This console connects directly to the Autonomous Coordination Engine sweeper registry. ONLY authorized municipal administrators and ward engineers can run sweeps, trigger local war rooms, and override chronic zones.
+          </p>
+        </div>
+        <div className="p-4 bg-zinc-950 border border-zinc-900 rounded max-w-md mx-auto">
+          <p className="text-[9.5px] font-mono font-bold text-zinc-400 uppercase leading-relaxed">
+            💡 Presenter Tip: Click the <span className="text-red-500 font-black">"👤 CITIZEN MODE"</span> button in the header navbar to switch your role to <span className="text-red-500 font-black">"🛡️ ADMIN MODE"</span> and unlock access to this console.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-grow p-6 max-w-7xl mx-auto w-full flex flex-col gap-8">

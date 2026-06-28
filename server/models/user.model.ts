@@ -10,6 +10,7 @@ export interface IUserDocument extends Document {
   badges: string[];
   area?: string;
   joinedAt: Date;
+  role: 'citizen' | 'admin';
   stats?: {
     reportsSubmitted: number;
     reportsVerified: number;
@@ -33,6 +34,7 @@ const UserSchema = new Schema<IUserDocument>({
   badges: { type: [String], default: [] },
   area: { type: String, default: '' },
   joinedAt: { type: Date, default: Date.now },
+  role: { type: String, enum: ['citizen', 'admin'], default: 'citizen' },
   stats: {
     reportsSubmitted: { type: Number, default: 0 },
     reportsVerified: { type: Number, default: 0 },

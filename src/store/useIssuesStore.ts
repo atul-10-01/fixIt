@@ -67,8 +67,9 @@ interface IssuesState {
   resolveIssue: (issueId: string, resolvedPhotoBase64: string, userLat: number, userLng: number) => Promise<{ success: boolean; message: string }>;
   triggerWarRoom: (area: string) => void;
   deactivateWarRoom: () => void;
-  runAgentLoop: () => void;
-  clearAllData: () => void;
+  runAgentLoop: () => Promise<void>;
+  clearAllData: () => Promise<void>;
+  toggleCurrentUserRole: () => Promise<void>;
   processOfflineQueue: () => Promise<void>;
 }
 
@@ -327,39 +328,66 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
     set({ warRoomActive: false });
   },
 
-  runAgentLoop: () => {
-    const { issues, warRoomActive, agentLogs } = get();
-    console.log("Starting Local Agent check cycle...");
-    // Keep local logs simulation active in memory
-    const heartbeatLog: AgentLog = {
-      id: `log_heartbeat_${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      action: "duplicate_merged",
-      issueId: "system_sweep",
-      issueTitle: "AGENT SWEEP HEARTBEAT",
-      details: "🤖 Sweep cycle completed. No outstanding delays detected in remaining categories.",
-      automated: true
-    };
-    set({ agentLogs: [heartbeatLog, ...agentLogs] });
+  runAgentLoop: async () => {
+    const { agentLogs } = get();
+    console.log("Starting Real Agent check cycle on backend...");
+    try {
+      const response = await issuesService.runAgentSweep();
+      if (response.success) {
+        const newLogs = response.logs || [];
+        set({ 
+          issues: response.issues,
+          agentLogs: [...newLogs, ...agentLogs]
+        });
+        localStorage.setItem('fixit_issues', JSON.stringify(response.issues));
+      }
+    } catch (err) {
+      console.error("Backend agent sweep cycle failed:", err);
+    }
   },
 
-  clearAllData: () => {
-    // Only clear the keys we actually use
+  clearAllData: async () => {
     localStorage.removeItem("fixit_issues");
     localStorage.removeItem("fixit_offline_queue");
     localStorage.removeItem("fixit_gps_asked");
 
-    const seeded = generateSeedIssues();
-    const seededLogs = generateSeedAgentLogs();
+    try {
+      const response = await issuesService.resetDatabase();
+      if (response.success) {
+        set({
+          issues: response.issues,
+          users: response.users,
+          currentUser: response.currentUser,
+          agentLogs: generateSeedAgentLogs(),
+          warRoomActive: false,
+          offlineQueue: [],
+          isOnline: true
+        });
+        localStorage.setItem('fixit_issues', JSON.stringify(response.issues));
+      }
+    } catch (err) {
+      console.error("Failed to reset database on backend, resetting locally:", err);
+      const seeded = generateSeedIssues();
+      const seededLogs = generateSeedAgentLogs();
 
-    set({
-      issues: seeded,
-      agentLogs: seededLogs,
-      users: SEED_USERS,
-      currentUser: SEED_USERS[0],
-      warRoomActive: false,
-      offlineQueue: [],
-      isOnline: true
-    });
+      set({
+        issues: seeded,
+        agentLogs: seededLogs,
+        users: SEED_USERS,
+        currentUser: SEED_USERS[0],
+        warRoomActive: false,
+        offlineQueue: [],
+        isOnline: true
+      });
+    }
+  },
+
+  toggleCurrentUserRole: async () => {
+    try {
+      const updatedUser = await issuesService.toggleRole();
+      set({ currentUser: updatedUser });
+    } catch (err) {
+      console.error("Failed to toggle user role:", err);
+    }
   }
 }));
