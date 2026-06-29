@@ -1,0 +1,25 @@
+# FixIt
+
+> Hyperlocal civic issue reporting, AI diagnostics, GPS-based peer verification, and municipal escalation for community hazards.
+
+FixIt helps citizens report local public hazards, verify nearby civic issues, follow live incident maps, and prepare escalation material for municipal authorities. The app combines AI image diagnostics, geofenced community validation, gamified trust metrics, and a live incident stream.
+
+## Key Pages
+
+- [Home](https://fixit-500719.web.app/) - Product overview, mission workflow, and live hyperlocal feed.
+- [Map](https://fixit-500719.web.app/map) - Interactive civic incident map with severity indicators.
+- [Incidents](https://fixit-500719.web.app/incidents) - Active grievance stream and issue inspection flow.
+- [Report Hazard](https://fixit-500719.web.app/report) - AI-assisted civic incident intake wizard.
+- [Impact Stats](https://fixit-500719.web.app/stats) - Civic resolution and activity metrics.
+- [Leaderboard](https://fixit-500719.web.app/leaderboard) - Community trust and gamification standings.
+
+## Backend
+
+- API service: https://fixit-api.onrender.com
+- Alternate production API endpoint used by the frontend: https://fixit-api-x1tr.onrender.com
+
+## Notes For Agents
+
+- Public pages are client-rendered React routes served from Firebase Hosting.
+- Reporting civic hazards requires browser location permission.
+- Backend calls may take 10 to 15 seconds after inactivity because the Render-hosted API can cold start.
