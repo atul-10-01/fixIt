@@ -6,7 +6,12 @@
 > **Demo / Hackathon Evaluation Note:** 
 > Since the backend API server is hosted on Render's free tier, the backend service automatically spins down (goes to sleep) after 15 minutes of inactivity. On the first server call (such as loading issues, submitting a report, or clicking **Sign In with Google**), the server may take **10 to 15 seconds to wake up (cold-start)**.
 > 
-> * **Google Sign-In Experience**: To prevent browser redirection to Render's raw "Service is spinning up" build log page, the frontend will intercept the click, display a loading toast ("Waking servers..."), and ping the backend. As soon as the server is fully awake, you will be redirected to the Google Auth page instantly.
+> > * **Google Sign-In Experience**: To prevent browser redirection to Render's raw "Service is spinning up" build log page, the frontend will intercept the click, display a loading toast ("Waking servers..."), and ping the backend. As soon as the server is fully awake, you will be redirected to the Google Auth page instantly.
+
+
+> [!NOTE]
+> **CI/CD Pipeline Note (GitHub Actions shows red X but deployment succeeds):**
+> The GitHub Actions workflow will report a failed status on every push to main. This is a **confirmed regression in firebase-tools** where the CLI makes a redundant release API call after a successful deploy, causing a false FAILED_PRECONDITION 400 error. The deployment **does succeed** — every push to main is live at [https://fixit-500719.web.app](https://fixit-500719.web.app). We deliberately avoided `continue-on-error: true` as a workaround, as it would silently mask genuine deployment failures in the future.
 
 ---
 
