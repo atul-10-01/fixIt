@@ -32,7 +32,10 @@ export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
         </Link>
 
         {/* Global Navigation links */}
-        <nav className="flex items-center gap-4 md:gap-6 text-[10px] font-bold uppercase tracking-widest text-zinc-500 overflow-x-auto whitespace-nowrap no-scrollbar w-full md:w-auto py-2 md:py-0 border-t border-zinc-900 md:border-t-0 order-3 md:order-2">
+        <nav
+          aria-label="Primary navigation"
+          className="flex items-center gap-4 md:gap-6 text-[10px] font-bold uppercase tracking-widest text-zinc-400 overflow-x-auto whitespace-nowrap no-scrollbar w-full md:w-auto py-2 md:py-0 border-t border-zinc-900 md:border-t-0 order-3 md:order-2"
+        >
           <NavLink 
             to="/"
             className={({ isActive }) => 
@@ -93,14 +96,19 @@ export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
 
         {/* User badge points bar */}
         <div className="flex items-center gap-3 order-2 md:order-3 flex-shrink-0">
+          <label htmlFor="language-select" className="sr-only">
+            Select language
+          </label>
           <select 
+            id="language-select"
+            aria-label="Select language"
             value={i18n.language} 
             onChange={(e) => {
               const lang = e.target.value;
               i18n.changeLanguage(lang);
               localStorage.setItem('fixit_lang', lang);
             }}
-            className="bg-black text-zinc-400 text-[9px] uppercase font-black border border-zinc-800 px-2 py-1.5 focus:outline-none focus:border-red-600 rounded cursor-pointer transition-colors"
+            className="bg-black text-zinc-300 text-[9px] uppercase font-black border border-zinc-700 px-2 py-1.5 focus:outline-none focus:border-red-600 rounded cursor-pointer transition-colors"
           >
             <option value="en">EN</option>
             <option value="kn">KN</option>
@@ -111,10 +119,11 @@ export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
           {currentUser && (
             <button
               onClick={() => toggleCurrentUserRole()}
+              aria-label={`Switch to ${currentUser.role === 'admin' ? 'citizen' : 'admin'} mode`}
               className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 border transition-all rounded ${
                 currentUser.role === 'admin' 
                   ? 'bg-red-950/25 border-red-500 text-red-500 hover:bg-red-950/40 hover:border-red-400' 
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                  : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600'
               }`}
             >
               {currentUser.role === 'admin' ? '🛡️ ADMIN MODE' : '👤 CITIZEN MODE'}
@@ -148,10 +157,12 @@ export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
               src={currentUser?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"} 
               alt={currentUser?.displayName || "Citizen"} 
               referrerPolicy="no-referrer"
+              width="20"
+              height="20"
               className="w-5 h-5 rounded-full border border-red-500" 
             />
             <div className="text-left leading-none">
-              <span className="text-[9px] text-zinc-400 font-black uppercase block tracking-wider">{(currentUser?.displayName || "Citizen").split(' ')[0]}</span>
+              <span className="text-[9px] text-zinc-300 font-black uppercase block tracking-wider">{(currentUser?.displayName || "Citizen").split(' ')[0]}</span>
               <span className="text-[10px] text-white font-mono font-black">{currentUser?.points || 0} PTS <span className="text-red-500">[{(currentUser?.level || "Newcomer").toUpperCase()}]</span></span>
             </div>
           </Link>
