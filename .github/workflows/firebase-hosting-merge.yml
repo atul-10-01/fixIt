@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - run: npm ci && npm run build
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
@@ -27,15 +26,14 @@ jobs:
           path: .deploy-hash
           key: deploy-hash-${{ steps.build_hash.outputs.hash }}
 
-      - name: Authenticate to Google Cloud
+      - name: Deploy to Firebase
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: google-github-actions/auth@v2
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FIXIT_500719 }}
-
-      - name: Deploy to Firebase Hosting
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: npx firebase-tools@15.22.1 deploy --only hosting --project fixit-500719
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FIXIT_500719 }}
+          channelId: live
+          projectId: fixit-500719
 
       - name: Save deployed hash
         if: steps.cache.outputs.cache-hit != 'true'
