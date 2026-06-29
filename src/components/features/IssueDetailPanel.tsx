@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ThumbsUp, AlertTriangle, Share2, Camera, Shield } from 'lucide-react';
+import { ThumbsUp, AlertTriangle, Share2, Camera, Shield, Ban, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIssuesStore } from '../../store/useIssuesStore';
 import { Issue } from '../../types';
@@ -36,6 +36,10 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
   const verifyAllowed = distance <= 500;
   const resolutionAllowed = distance <= 50;
 
+  const isReporter = currentUser ? issue.reportedBy === currentUser.uid : false;
+  const hasVerified = currentUser ? issue.verifications.includes(currentUser.uid) : false;
+  const hasUpvoted = currentUser ? issue.upvotes.includes(currentUser.uid) : false;
+
   const handleResolvePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -47,6 +51,14 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
   };
 
   const handleVerifyClick = async () => {
+    if (isReporter) {
+      toast.error("You can't verify your own report — that would defeat the purpose!");
+      return;
+    }
+    if (hasVerified) {
+      toast.error("You've already verified this incident.");
+      return;
+    }
     if (!verifyAllowed) {
       toast.error(`Geofenced Verification Locked: You must be within 500m of this hazard. Currently: ${Math.round(distance)}m away.`);
       return;
@@ -85,19 +97,45 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
             <button
               onClick={handleVerifyClick}
               className={`flex-1 flex items-center justify-center gap-2 font-black uppercase text-[10px] py-3 tracking-widest border rounded transition-all ${
-                verifyAllowed 
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500' 
+                isReporter
+                  ? 'bg-amber-950/10 border-amber-900/35 text-amber-500 hover:bg-amber-950/20 cursor-not-allowed'
+                  : hasVerified
+                  ? 'bg-zinc-900/20 border-zinc-800 text-zinc-500 hover:bg-zinc-900/30 cursor-not-allowed'
+                  : verifyAllowed
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500'
                   : 'bg-zinc-900/10 border-zinc-850 text-zinc-600 cursor-not-allowed'
               }`}
             >
-              <span>Verify ({verifyAllowed ? `you're ${Math.round(distance)}m away ✓` : `locked - you're ${Math.round(distance)}m away`})</span>
+              {isReporter && <Ban className="w-3.5 h-3.5 text-amber-500" />}
+              {hasVerified && <CheckCircle className="w-3.5 h-3.5 text-zinc-500" />}
+              {!isReporter && !hasVerified && <Shield className="w-3.5 h-3.5" />}
+              <span>
+                {isReporter
+                  ? "Can't self-verify"
+                  : hasVerified
+                  ? "You Verified ✓"
+                  : verifyAllowed
+                  ? `Verify (you're ${Math.round(distance)}m away ✓)`
+                  : `locked - you're ${Math.round(distance)}m away`}
+              </span>
             </button>
           )}
 
           {/* Upvote */}
           <button
-            onClick={() => upvoteIssue(issue.id)}
-            className="px-4 py-3 border border-zinc-800 hover:border-zinc-500 rounded text-[10px] font-black uppercase tracking-wider flex items-center gap-2 text-zinc-300"
+            onClick={async () => {
+              await upvoteIssue(issue.id);
+              if (hasUpvoted) {
+                toast.success("Upvote removed");
+              } else {
+                toast.success("Upvote recorded!");
+              }
+            }}
+            className={`px-4 py-3 border rounded text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+              hasUpvoted
+                ? 'bg-zinc-800 border-zinc-700 text-zinc-100 hover:border-zinc-500'
+                : 'border-zinc-800 hover:border-zinc-500 text-zinc-300'
+            }`}
           >
             <ThumbsUp className="w-3.5 h-3.5" />
             <span>Upvote ({issue.upvotes.length})</span>
@@ -227,9 +265,10 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
                 className="bg-black text-white text-[9.5px] font-bold uppercase border border-zinc-800 px-2 py-1.5 focus:outline-none rounded w-32"
               />
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!orgName.trim()) return;
-                  adoptIssue(issue.id, orgName);
+                  await adoptIssue(issue.id, orgName);
+                  toast.success(`Incident adopted by ${orgName}! Direct repair pipeline active.`);
                   setOrgName('');
                 }}
                 className="bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[9px] px-3 py-1.5 tracking-wider rounded"
@@ -319,9 +358,11 @@ export function IssueDetailPanel({ issue, userLat, userLng, onClose }: IssueDeta
               className="flex-grow bg-zinc-950 border border-zinc-850 p-2 text-xs text-white uppercase font-bold focus:outline-none focus:border-red-600 rounded"
             />
             <button 
-              onClick={() => {
+              onClick={async () => {
                 if (!commentText.trim()) return;
-                addComment(issue.id, commentText);
+                await addComment(issue.id, commentText);
+                toast.success("Feedback posted successfully!");
+                setOrgName('');
                 setCommentText('');
               }}
               className="bg-zinc-900 border border-zinc-700 text-white font-black uppercase text-[10px] px-4 rounded transition-colors"
