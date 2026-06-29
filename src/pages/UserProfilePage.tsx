@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useIssuesStore } from '../store/useIssuesStore';
 import api from '../services/api';
+import { toast } from 'sonner';
 
 export function UserProfilePage() {
   const currentUser = useIssuesStore((state) => state.currentUser);
@@ -12,7 +13,27 @@ export function UserProfilePage() {
     setSelectedIssueId: (id: string | null) => void;
   }>();
 
+  const [isWakingUp, setIsWakingUp] = useState(false);
+
   const userIssues = issues.filter(i => i.reportedBy === currentUser.uid);
+
+  const handleGoogleSignIn = async () => {
+    setIsWakingUp(true);
+    const toastId = toast.loading("Connecting to authorization servers... (May take 10-15 seconds if server is sleeping)", {
+      duration: Infinity,
+    });
+    try {
+      // Ping backend health endpoint to ensure it's awake before browser redirect
+      await api.get('/api/health');
+      toast.success("Authorization servers ready! Redirecting...", { id: toastId });
+      // Direct window location to Google OAuth endpoint
+      window.location.href = `${api.defaults.baseURL || ''}/api/auth/google?origin=${window.location.origin}`;
+    } catch (err) {
+      console.error("Failed to connect to backend server:", err);
+      toast.error("Could not establish connection to the server. Please try again.", { id: toastId });
+      setIsWakingUp(false);
+    }
+  };
 
   return (
     <div className="flex-grow p-6 max-w-4xl mx-auto w-full flex flex-col gap-6">
@@ -26,12 +47,22 @@ export function UserProfilePage() {
         </div>
         <div>
           {currentUser.uid === "user_priya_s" ? (
-            <a 
-              href={`${api.defaults.baseURL || ''}/api/auth/google?origin=${window.location.origin}`}
-              className="bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white font-black uppercase text-[9.5px] py-2.5 px-4 tracking-widest rounded transition-colors inline-block text-center"
+            <button 
+              onClick={handleGoogleSignIn}
+              disabled={isWakingUp}
+              className={`bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white font-black uppercase text-[9.5px] py-2.5 px-4 tracking-widest rounded transition-colors text-center flex items-center justify-center gap-2 ${
+                isWakingUp ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              Sign In with Google
-            </a>
+              {isWakingUp ? (
+                <>
+                  <span className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                  Waking servers...
+                </>
+              ) : (
+                'Sign In with Google'
+              )}
+            </button>
           ) : (
             <button 
               onClick={async () => {

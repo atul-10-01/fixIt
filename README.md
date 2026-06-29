@@ -2,6 +2,12 @@
 ### Hyperlocal Civic Issue Reporting, Community Action & AI Resolution Platform
 **Vibe2Ship Hackathon | Problem Statement 2: Community Hero**
 
+> [!IMPORTANT]
+> **Demo / Hackathon Evaluation Note:** 
+> Since the backend API server is hosted on Render's free tier, the backend service automatically spins down (goes to sleep) after 15 minutes of inactivity. On the first server call (such as loading issues, submitting a report, or clicking **Sign In with Google**), the server may take **10 to 15 seconds to wake up (cold-start)**.
+> 
+> * **Google Sign-In Experience**: To prevent browser redirection to Render's raw "Service is spinning up" build log page, the frontend will intercept the click, display a loading toast ("Waking servers..."), and ping the backend. As soon as the server is fully awake, you will be redirected to the Google Auth page instantly.
+
 ---
 
 ## 🚀 Live Deployments
