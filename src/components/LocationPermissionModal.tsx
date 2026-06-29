@@ -37,7 +37,7 @@ export function LocationPermissionModal({ onAllow, onDecline }: LocationPermissi
         {/* Privacy note */}
         <div className="px-6 py-4 border-b border-zinc-900/60 flex items-start gap-3">
           <Shield className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-          <p className="text-[10px] text-zinc-500 font-bold uppercase leading-relaxed">
+          <p className="text-[10px] text-zinc-400 font-bold uppercase leading-relaxed">
             Your coordinates are <span className="text-emerald-400">never stored on our servers</span>.
             They are only used client-side for distance calculations. We do not track your movement.
           </p>
@@ -58,7 +58,7 @@ export function LocationPermissionModal({ onAllow, onDecline }: LocationPermissi
               <div className="w-full border-t border-zinc-800" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-zinc-950 px-3 text-[9px] text-zinc-600 uppercase font-black tracking-widest">
+              <span className="bg-zinc-950 px-3 text-[9px] text-zinc-400 uppercase font-black tracking-widest">
                 Or select your area
               </span>
             </div>
@@ -66,7 +66,7 @@ export function LocationPermissionModal({ onAllow, onDecline }: LocationPermissi
 
           {/* City fallback selector */}
           <div className="space-y-2">
-            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest">
+            <p className="text-[9px] text-zinc-400 font-black uppercase tracking-widest">
               Select your closest city to continue without GPS:
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -77,7 +77,7 @@ export function LocationPermissionModal({ onAllow, onDecline }: LocationPermissi
                   className={`text-[9px] font-black uppercase tracking-wider px-3 py-2 border rounded transition-all text-left ${
                     selectedCity === key
                       ? 'border-red-500 bg-red-950/20 text-red-400'
-                      : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400'
+                      : 'border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300'
                   }`}
                 >
                   <MapPin className="w-2.5 h-2.5 inline-block mr-1" />

@@ -6,6 +6,17 @@ import { useIssuesStore } from '../store/useIssuesStore';
 import { getHaversineDistance } from '../utils/seedData';
 import { IssueDetailPanel } from '../components/features/IssueDetailPanel';
 
+const getThumbnailUrl = (url: string) => {
+  if (!url.includes('images.unsplash.com')) return url;
+
+  const imageUrl = new URL(url);
+  imageUrl.searchParams.set('w', '360');
+  imageUrl.searchParams.set('q', '70');
+  imageUrl.searchParams.set('auto', 'format');
+  imageUrl.searchParams.set('fit', 'crop');
+  return imageUrl.toString();
+};
+
 export function LandingPage() {
   const { t } = useTranslation();
   const issues = useIssuesStore((state) => state.issues);
@@ -159,7 +170,7 @@ export function LandingPage() {
               >
                 <div className="relative aspect-square rounded overflow-hidden">
                   <img 
-                    src={issue.images[0]} 
+                    src={getThumbnailUrl(issue.images[0])}
                     alt={issue.title} 
                     referrerPolicy="no-referrer"
                     loading="lazy"

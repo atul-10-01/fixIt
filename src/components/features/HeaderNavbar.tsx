@@ -20,7 +20,7 @@ export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
     <>
       <header className="bg-zinc-950 border-b border-zinc-850 px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
         <Link to="/" className="flex items-center gap-3 cursor-pointer order-1 flex-shrink-0">
-          <img src={logo} className="w-9 h-9 object-contain" alt="FixIt Logo" />
+          <img src={logo} width="36" height="36" className="w-9 h-9 object-contain" alt="FixIt Logo" />
           <div>
             <span className="text-[9px] font-black uppercase tracking-[0.4em] text-red-600 block leading-none mb-1">
               {warRoomActive ? 'EMERGENCY SHIELD ACTIVE' : 'ACTIVE COMMUNITY PROTOCOL'}

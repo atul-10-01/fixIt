@@ -3,22 +3,37 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useIssuesStore } from './store/useIssuesStore';
 import { HeaderNavbar } from './components/features/HeaderNavbar';
 import { LegalAidWidget } from './components/LegalAidWidget';
 import { LandingPage } from './pages/LandingPage';
-import { MapExplorer } from './pages/MapExplorer';
-import { IncidentStream } from './pages/IncidentStream';
-import { ReportHazard } from './pages/ReportHazard';
-import { ImpactStats } from './pages/ImpactStats';
-import { LeaderboardPage } from './pages/LeaderboardPage';
-import { AdminPanel } from './pages/AdminPanel';
-import { UserProfilePage } from './pages/UserProfilePage';
 import { LocationPermissionModal } from './components/LocationPermissionModal';
 import { useGeolocation } from './hooks/useGeolocation';
+
+const MapExplorer = lazy(() => import('./pages/MapExplorer').then((module) => ({ default: module.MapExplorer })));
+const IncidentStream = lazy(() => import('./pages/IncidentStream').then((module) => ({ default: module.IncidentStream })));
+const ReportHazard = lazy(() => import('./pages/ReportHazard').then((module) => ({ default: module.ReportHazard })));
+const ImpactStats = lazy(() => import('./pages/ImpactStats').then((module) => ({ default: module.ImpactStats })));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage').then((module) => ({ default: module.LeaderboardPage })));
+const AdminPanel = lazy(() => import('./pages/AdminPanel').then((module) => ({ default: module.AdminPanel })));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then((module) => ({ default: module.UserProfilePage })));
+
+function RouteFallback() {
+  return (
+    <div className="flex-grow flex items-center justify-center p-8">
+      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">
+        Loading FixIt module...
+      </span>
+    </div>
+  );
+}
+
+function LazyRoute({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>;
+}
 
 function AppLayout() {
   const issues = useIssuesStore((state) => state.issues);
@@ -118,13 +133,13 @@ function AppLayout() {
       </main>
       <LegalAidWidget />
       <footer className="bg-zinc-950 border-t border-zinc-900 py-8 px-6 text-center">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-zinc-600 text-[10px] uppercase font-mono font-bold tracking-widest">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-zinc-400 text-[10px] uppercase font-mono font-bold tracking-widest">
           <div>
             <span>© 2026 FIXIT NETWORK. YOUR FRIENDLY NEIGHBORHOOD HERO.</span>
           </div>
           
           <div className="max-w-md text-center md:text-right leading-relaxed normal-case font-sans font-normal font-bold">
-            <span className="text-[9px] font-mono font-bold text-zinc-600 uppercase tracking-widest block mb-1">Legal Disclaimer Notice</span>
+            <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-widest block mb-1">Legal Disclaimer Notice</span>
             FixIt is a decentralized community reporting platform and is not an emergency service. For immediate life-threatening situations, call 112. FixIt is not liable for municipal response delay.
           </div>
         </div>
@@ -139,13 +154,13 @@ export default function App() {
       <Routes>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<LandingPage />} />
-          <Route path="map" element={<MapExplorer />} />
-          <Route path="incidents" element={<IncidentStream />} />
-          <Route path="report" element={<ReportHazard />} />
-          <Route path="stats" element={<ImpactStats />} />
-          <Route path="leaderboard" element={<LeaderboardPage />} />
-          <Route path="admin" element={<AdminPanel />} />
-          <Route path="profile" element={<UserProfilePage />} />
+          <Route path="map" element={<LazyRoute><MapExplorer /></LazyRoute>} />
+          <Route path="incidents" element={<LazyRoute><IncidentStream /></LazyRoute>} />
+          <Route path="report" element={<LazyRoute><ReportHazard /></LazyRoute>} />
+          <Route path="stats" element={<LazyRoute><ImpactStats /></LazyRoute>} />
+          <Route path="leaderboard" element={<LazyRoute><LeaderboardPage /></LazyRoute>} />
+          <Route path="admin" element={<LazyRoute><AdminPanel /></LazyRoute>} />
+          <Route path="profile" element={<LazyRoute><UserProfilePage /></LazyRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>
