@@ -41,6 +41,7 @@ function AppLayout() {
 
   // Initial load and sync on mount
   useEffect(() => {
+    console.log('[FixIt CI/CD] Pipeline test - deployed via GitHub Actions 🚀');
     initializeStore();
   }, [initializeStore]);
 

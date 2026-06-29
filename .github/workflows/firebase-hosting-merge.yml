@@ -14,9 +14,27 @@ jobs:
       - run: npm ci && npm run build
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+
+      - name: Get build hash
+        id: build_hash
+        run: echo "hash=$(find dist -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      - name: Cache last deployed hash
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .deploy-hash
+          key: deploy-hash-${{ steps.build_hash.outputs.hash }}
+
+      - name: Deploy to Firebase
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FIXIT_500719 }}
           channelId: live
           projectId: fixit-500719
+
+      - name: Save deployed hash
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: echo "${{ steps.build_hash.outputs.hash }}" > .deploy-hash
