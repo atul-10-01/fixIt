@@ -9,6 +9,19 @@ interface HeaderNavbarProps {
   gpsStatus?: GeolocationStatus;
 }
 
+const getAvatarUrl = (url: string) => {
+  if (!url.includes('images.unsplash.com')) return url;
+
+  const imageUrl = new URL(url);
+  imageUrl.searchParams.set('w', '40');
+  imageUrl.searchParams.set('h', '40');
+  imageUrl.searchParams.set('fit', 'crop');
+  imageUrl.searchParams.set('crop', 'faces');
+  imageUrl.searchParams.set('q', '70');
+  imageUrl.searchParams.set('auto', 'format');
+  return imageUrl.toString();
+};
+
 export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
   const { t, i18n } = useTranslation();
   const warRoomActive = useIssuesStore((state) => state.warRoomActive);
@@ -154,12 +167,12 @@ export function HeaderNavbar({ gpsStatus = 'idle' }: HeaderNavbarProps) {
             className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 px-3 py-1.5 border border-zinc-800 rounded cursor-pointer transition-colors"
           >
             <img 
-              src={currentUser?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"} 
+              src={getAvatarUrl(currentUser?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde")} 
               alt={currentUser?.displayName || "Citizen"} 
               referrerPolicy="no-referrer"
               width="20"
               height="20"
-              className="w-5 h-5 rounded-full border border-red-500" 
+              className="w-5 h-5 rounded-full border border-red-500 object-cover" 
             />
             <div className="text-left leading-none">
               <span className="text-[9px] text-zinc-300 font-black uppercase block tracking-wider">{(currentUser?.displayName || "Citizen").split(' ')[0]}</span>
