@@ -22,6 +22,45 @@ const resolveClosestCity = (lat: number, lng: number) => {
   return closestCity;
 };
 
+// Helper to inspect first few kilobytes of Base64 string for APP1 JPEG EXIF markers
+const checkExifInBase64 = (dataUrl: string): boolean => {
+  try {
+    const parts = dataUrl.split(',');
+    const base64Str = parts[1] || parts[0];
+    // Decode first 4096 bytes of base64 to binary string for speed
+    const partialBase64 = base64Str.slice(0, 4096);
+    const binaryString = atob(partialBase64);
+    
+    // Check for JPEG magic number (SOI: FF D8)
+    if (binaryString.charCodeAt(0) !== 0xFF || binaryString.charCodeAt(1) !== 0xD8) {
+      return false; // Not a JPEG
+    }
+    
+    // Scan for APP1 marker (FF E1)
+    const scanLimit = Math.min(binaryString.length - 8, 2048);
+    for (let i = 2; i < scanLimit; i++) {
+      if (binaryString.charCodeAt(i) === 0xFF && binaryString.charCodeAt(i + 1) === 0xE1) {
+        // Found APP1 marker. Check for "Exif" header (Exif\0\0)
+        const offset = i + 4;
+        if (
+          binaryString.charCodeAt(offset) === 0x45 && // 'E'
+          binaryString.charCodeAt(offset + 1) === 0x78 && // 'x'
+          binaryString.charCodeAt(offset + 2) === 0x69 && // 'i'
+          binaryString.charCodeAt(offset + 3) === 0x66 && // 'f'
+          binaryString.charCodeAt(offset + 4) === 0x00 &&
+          binaryString.charCodeAt(offset + 5) === 0x00
+        ) {
+          return true; // EXIF metadata present!
+        }
+      }
+    }
+    return false;
+  } catch (err) {
+    console.error("Error decoding base64 for EXIF check:", err);
+    return false;
+  }
+};
+
 export function ReportHazard() {
   const { t } = useTranslation();
   const addIssue = useIssuesStore((state) => state.addIssue);
@@ -54,27 +93,28 @@ export function ReportHazard() {
   const [aiAnalysisResult, setAiAnalysisResult] = useState<any>(null);
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
-  // Handle image upload with simulated EXIF checking
+  // Handle image upload with real EXIF checking
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setUploadedImage(reader.result as string);
+      const dataUrl = reader.result as string;
+      setUploadedImage(dataUrl);
       
-      // Simulate EXIF metadata inspection (Fake alert trigger)
-      const hasExif = Math.random() > 0.4;
+      // Perform actual EXIF metadata inspection
+      const hasExif = checkExifInBase64(dataUrl);
       setExifVerified(true);
       setExifWarning(!hasExif);
 
       // Trigger multi-step AI analysis loader
-      triggerAIAnalysis();
+      triggerAIAnalysis(dataUrl);
     };
     reader.readAsDataURL(file);
   };
 
-  const triggerAIAnalysis = () => {
+  const triggerAIAnalysis = (imageUrl: string) => {
     setAiAnalyzing(true);
     setAiStep(1);
     setFormErrors([]);
@@ -86,15 +126,22 @@ export function ReportHazard() {
       if (current === 4) {
         clearInterval(interval);
         
-        // Extract real Base64 bytes and MimeType from uploadedImage DataURL
-        const base64Data = uploadedImage.split(',')[1] || uploadedImage;
-        const mimeType = uploadedImage.match(/data:([^;]+);/)?.[1] || "image/jpeg";
+        // Extract real Base64 bytes and MimeType from imageUrl directly
+        const base64Data = imageUrl.split(',')[1] || imageUrl;
+        const mimeType = imageUrl.match(/data:([^;]+);/)?.[1] || "image/jpeg";
         
         // Fetch AI analysis from backend proxy
         issuesService.analyzeImage(base64Data, mimeType)
         .then(data => {
           try {
             const parsedData = aiAnalysisResponseSchema.parse(data);
+            
+            // Check if the server returned a simulated response
+            if (parsedData.isSimulated) {
+              console.warn(`Gemini API connection failed, fell back to simulated response. Reason: ${parsedData.simulationReason || 'unknown'}`);
+              toast.warning("Gemini AI API connection failed. Switched to simulation mode.");
+            }
+            
             setAiAnalysisResult(parsedData);
             setAiAnalyzing(false);
             setReportStep(2); // Jump to Edit/Review AI results step
@@ -107,10 +154,96 @@ export function ReportHazard() {
             setReportStep(1);
           }
         })
-        .catch(err => {
-          console.error("AI Analysis proxy error:", err);
-          toast.error("Gemini AI API connection error.");
+        .catch((err: any) => {
+          console.error("AI Analysis proxy error, falling back to local simulation:", err);
+          
+          let isRateLimit = false;
+          if (err.response) {
+            if (err.response.status === 429) {
+              isRateLimit = true;
+            }
+          }
+          
+          if (isRateLimit) {
+            console.warn("AI usage limit reached. Switched to local simulation mode.");
+            toast.warning("AI usage limit reached. Switched to local simulation mode.");
+          } else {
+            console.warn("Gemini API connection failed. Switched to local simulation mode.");
+            toast.warning("Gemini AI API connection failed. Switched to local simulation mode.");
+          }
+          
+          // Local fallback visual simulation logic on client
+          const simulatedResponses = [
+            {
+              title: "Active Road Pothole and Cracking",
+              description: "Severe pavement deterioration and cratering along the primary traffic lane. Poses immediate risk to light vehicles and commuters.",
+              category: "pothole",
+              severityScore: 7,
+              severityReasoning: "Deep crater forcing vehicles to swerve abruptly into oncoming lanes.",
+              estimatedImpactRadius: 150,
+              suggestedAuthority: "Public Works Department (PWD)",
+              estimatedResolutionDays: 4,
+              urgencyKeywords: ["road_hazard", "pothole", "active_damage"],
+              confidence: 0.92,
+              authenticityReasoning: "Standard camera lens distortion and noise patterns. Authentic metadata found.",
+              authenticityScore: 0.98,
+              isSimulated: true,
+              simulationReason: isRateLimit ? "rate_limit" : "api_error"
+            },
+            {
+              title: "Broken Streetlight & Dark Passage",
+              description: "Defunct lighting overhead along the pedestrian corridor. Creates an insecure walkway after dark.",
+              category: "streetlight",
+              severityScore: 6,
+              severityReasoning: "Lack of visibility increases hazard risks and petty security incidents at night.",
+              estimatedImpactRadius: 80,
+              suggestedAuthority: "Municipal Corporation Electrical Dept",
+              estimatedResolutionDays: 3,
+              urgencyKeywords: ["streetlight_broken", "insecurity", "dark_passage"],
+              confidence: 0.89,
+              authenticityReasoning: "Clean image with proper high-ISO noise typical of smartphone low-light capture.",
+              authenticityScore: 0.95,
+              isSimulated: true,
+              simulationReason: isRateLimit ? "rate_limit" : "api_error"
+            },
+            {
+              title: "Overflowing Garbage Container and Litter",
+              description: "Solid waste piled around the public dumpster container, spilling onto the footpath. Bad odour and hygienic concerns.",
+              category: "garbage",
+              severityScore: 5,
+              severityReasoning: "Attracting stray animals and creating health hazards for the nearby residents.",
+              estimatedImpactRadius: 120,
+              suggestedAuthority: "Solid Waste Management Division",
+              estimatedResolutionDays: 2,
+              urgencyKeywords: ["waste_spill", "sanitation_risk", "clogged_footpath"],
+              confidence: 0.95,
+              authenticityReasoning: "No sign of generative editing. Realistic textures, shadows match ambient light source.",
+              authenticityScore: 0.99,
+              isSimulated: true,
+              simulationReason: isRateLimit ? "rate_limit" : "api_error"
+            },
+            {
+              title: "Water Mains Leakage and Road Flooding",
+              description: "Pressurized clean water leaking through crack in pavement, accumulating on the side of the street.",
+              category: "water_leakage",
+              severityScore: 6,
+              severityReasoning: "Constant wasting of municipal water and potential soil erosion beneath the road bed.",
+              estimatedImpactRadius: 200,
+              suggestedAuthority: "Water Supply & Sewerage Board",
+              estimatedResolutionDays: 3,
+              urgencyKeywords: ["water_wastage", "leakage", "flooding_threat"],
+              confidence: 0.91,
+              authenticityReasoning: "Real-time water reflection lines are physically consistent. Genuine photo.",
+              authenticityScore: 0.97,
+              isSimulated: true,
+              simulationReason: isRateLimit ? "rate_limit" : "api_error"
+            }
+          ];
+          
+          const result = simulatedResponses[Math.floor(Math.random() * simulatedResponses.length)];
+          setAiAnalysisResult(result);
           setAiAnalyzing(false);
+          setReportStep(2);
         });
       }
     }, 1200);

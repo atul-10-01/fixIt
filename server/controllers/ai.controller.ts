@@ -7,14 +7,63 @@ import { ai } from "../config/ai";
 export const aiController = {
   // AI Image Analysis via Gemini
   analyzeImage: async (req: Request, res: Response) => {
-    const { imageBase64, mimeType } = req.body;
+    const { imageBase64, imageDataUrl, mimeType } = req.body;
+    const sourceImage = imageBase64 || imageDataUrl;
+    const resolvedMimeType =
+      mimeType ||
+      (typeof sourceImage === "string" ? sourceImage.match(/^data:([^;]+);base64,/)?.[1] : undefined) ||
+      "image/jpeg";
 
-    if (!imageBase64 || !mimeType) {
-      res.status(400).json({ error: "Missing imageBase64 or mimeType parameter." });
+    if (!sourceImage) {
+      res.status(400).json({ error: "Missing imageBase64 or imageDataUrl parameter." });
       return;
     }
 
-    const promptText = `Analyze this image of a community/civic issue. Respond in valid JSON only with this exact structure:
+    const resolvedBase64 =
+      typeof sourceImage === "string"
+        ? sourceImage.includes(",")
+          ? sourceImage.split(",")[1] || ""
+          : sourceImage
+        : "";
+
+    if (!resolvedBase64) {
+      res.status(400).json({ error: "Missing imageBase64 payload." });
+      return;
+    }
+
+    // Server-side real EXIF detection
+    let hasExif = false;
+    try {
+      const buffer = Buffer.from(resolvedBase64, 'base64');
+      if (buffer.length >= 4 && buffer[0] === 0xFF && buffer[1] === 0xD8) {
+        const scanLimit = Math.min(buffer.length - 8, 2048);
+        for (let i = 2; i < scanLimit; i++) {
+          if (buffer[i] === 0xFF && buffer[i + 1] === 0xE1) {
+            const offset = i + 4;
+            if (
+              buffer[offset] === 0x45 && // 'E'
+              buffer[offset + 1] === 0x78 && // 'x'
+              buffer[offset + 2] === 0x69 && // 'i'
+              buffer[offset + 3] === 0x66 && // 'f'
+              buffer[offset + 4] === 0x00 &&
+              buffer[offset + 5] === 0x00
+            ) {
+              hasExif = true;
+              break;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error parsing EXIF on server:", err);
+    }
+
+    const promptText = `Analyze this image of a community/civic issue. Note that the uploaded image file ${
+      hasExif 
+        ? "contains valid camera EXIF metadata headers (strongly suggesting it is a direct camera capture)." 
+        : "does not contain standard camera EXIF metadata headers (suggesting it is a screenshot, download, or edited image)."
+    }
+Respond in valid JSON only with this exact structure:
 {
   "title": "Brief descriptive title (max 60 chars)",
   "description": "Detailed description of what you see (2-3 sentences)",
@@ -26,12 +75,12 @@ export const aiController = {
   "estimatedResolutionDays": <integer>,
   "urgencyKeywords": ["array", "of", "relevant", "tags"],
   "confidence": <float 0-1>,
-  "authenticityReasoning": "One sentence explaining if this photograph appears to be a genuine real-world photo or potentially AI-generated/modified",
-  "authenticityScore": <float 0-1, where 1.0 is definitely a genuine photograph>
+  "authenticityReasoning": "One sentence explaining if this is a genuine camera-captured photograph, or if it is a screenshot (look for phone status bars, time/battery icons, browser controls, crop/UI elements, black borders) or AI-generated/modified",
+  "authenticityScore": <float 0-1, where 1.0 is definitely a direct camera-captured photo and less than 0.5 if it is a screenshot, AI-generated, or heavily modified>
 }`;
 
     // Pre-validate base64 payload format to prevent API errors on dummy/test inputs
-    const isValidBase64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(imageBase64) && imageBase64 !== "dummy_base64_data";
+    const isValidBase64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(resolvedBase64) && resolvedBase64 !== "dummy_base64_data";
 
     if (ai && isValidBase64) {
       try {
@@ -45,8 +94,8 @@ export const aiController = {
                 { text: promptText },
                 {
                   inlineData: {
-                    mimeType: mimeType,
-                    data: imageBase64
+                    mimeType: resolvedMimeType,
+                    data: resolvedBase64
                   }
                 }
               ]
@@ -134,7 +183,11 @@ export const aiController = {
     ];
 
     const result = simulatedResponses[Math.floor(Math.random() * simulatedResponses.length)];
-    res.json(result);
+    res.json({
+      ...result,
+      isSimulated: true,
+      simulationReason: "api_error"
+    });
   },
 
   // Formal complaint letter formulation
@@ -216,6 +269,10 @@ On behalf of the ${location?.area || "Koramangala"} Resident Collective
 CC: Ward Sanitation & Infrastructure Council
     `;
 
-    res.json({ text: letterText.trim() });
+    res.json({
+      text: letterText.trim(),
+      isSimulated: true,
+      simulationReason: "api_error"
+    });
   }
 };

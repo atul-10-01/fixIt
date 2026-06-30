@@ -3,6 +3,7 @@ import { Issue } from '../types';
 import { X, Copy, Download, FileText, Check, Loader2 } from 'lucide-react';
 import { issuesService } from '../services/issuesService';
 import { complaintResponseSchema } from '../schemas';
+import { toast } from 'sonner';
 
 interface ComplaintLetterModalProps {
   issue: Issue;
@@ -38,9 +39,32 @@ export const ComplaintLetterModal: React.FC<ComplaintLetterModalProps> = ({ issu
       });
 
       const parsedData = complaintResponseSchema.parse(data);
+      
+      // Check if the server returned a simulated response
+      if (parsedData.isSimulated) {
+        console.warn(`Gemini API connection failed, fell back to simulated complaint letter. Reason: ${parsedData.simulationReason || 'unknown'}`);
+        toast.warning("Gemini AI API connection failed. Switched to simulation mode.");
+      }
+      
       setComplaintText(parsedData.text);
-    } catch (err) {
-      console.error("Grievance letter generation error:", err);
+    } catch (err: any) {
+      console.error("Grievance letter generation error, falling back to local simulation:", err);
+      
+      let isRateLimit = false;
+      if (err.response) {
+        if (err.response.status === 429) {
+          isRateLimit = true;
+        }
+      }
+      
+      if (isRateLimit) {
+        console.warn("AI usage limit reached. Switched to local simulation mode.");
+        toast.warning("AI usage limit reached. Switched to local simulation mode.");
+      } else {
+        console.warn("Gemini API connection failed. Switched to local simulation mode.");
+        toast.warning("Gemini AI API connection failed. Switched to local simulation mode.");
+      }
+      
       // Hard fallback matching standard styling
       setComplaintText(`
 FORMAL CIVIC GRIEVANCE COMPLAINT

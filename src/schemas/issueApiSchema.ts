@@ -13,10 +13,14 @@ export const aiAnalysisResponseSchema = z.object({
   confidence: z.coerce.number(),
   authenticityScore: z.coerce.number(),
   authenticityReasoning: z.string(),
+  isSimulated: z.boolean().optional(),
+  simulationReason: z.string().optional(),
 });
 
 export const complaintResponseSchema = z.object({
   text: z.string(),
+  isSimulated: z.boolean().optional(),
+  simulationReason: z.string().optional(),
 });
 
 export type AIAnalysisResponse = z.infer<typeof aiAnalysisResponseSchema>;
