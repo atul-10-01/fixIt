@@ -10,6 +10,28 @@
 
 
 
+> [!NOTE]
+> **CI/CD Pipeline Note (GitHub Actions shows red X but deployment succeeds):**
+> The GitHub Actions workflow will report a failed status on every push to main. This is a **confirmed regression in firebase-tools** where the CLI makes a redundant release API call after a successful deploy, causing a false FAILED_PRECONDITION 400 error. The deployment **does succeed** — every push to main is live at [https://fixit-500719.web.app](https://fixit-500719.web.app). We deliberately avoided `continue-on-error: true` as a workaround, as it would silently mask genuine deployment failures in the future.
+
+---
+
+## 🚀 Live Deployments
+
+* **Frontend Web App (Google Cloud Hosted):** [https://fixit-500719.web.app](https://fixit-500719.web.app)
+* **Backend API Service:** [https://fixit-api.onrender.com](https://fixit-api.onrender.com)
+
+## 🎬 Product Demo Videos
+
+* **FixIt Product Walkthrough & Demo (Video Part 1):** [Watch Video on OneDrive](https://1drv.ms/v/c/eb997b5804f40acf/IQDYidSxWCoVR7q1pl06Bp8fAdrA921ADXiPDFtA3uOAF60?e=bIeigl)
+* **FixIt Product Walkthrough & Demo (Video Part 2):** [Watch Video on OneDrive](https://1drv.ms/v/c/eb997b5804f40acf/IQA03ndlyjFbTLdlwYVHP75aAcDUTeJiZoHwU8ZRNxrtKGo?e=Dp6Qbu)
+
+### 🏗️ Split-Domain Deployment Architecture
+To secure a Google Cloud hosted domain while avoiding cloud-billing card authentication issues (due to international payment blocks on standard bank accounts), FixIt is deployed in a hybrid state:
+* **Frontend Web App:** Hosted on **Firebase Hosting** (Google Cloud CDN), providing a fast, secure, and HTTPS-encrypted `*.web.app` endpoint.
+* **Backend API Server:** Hosted on **Render.com** (Native Node.js runtime) connecting to a remote MongoDB Atlas database.
+* **Cross-Origin Auth:** Uses standard `Authorization: Bearer <token>` headers to bypass cross-domain third-party cookie restrictions enforced by modern browsers.
+
 ---
 
 ## 📖 Product Overview
