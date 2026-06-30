@@ -116,7 +116,7 @@ FixIt leverages a multi-dimensional Google stack across its development lifecycl
 
 1. **Google Gemini 2.5 Flash (via AI Studio SDK):**
    * **Visual Scanner:** Analyzes base64 civic photos to identify category type, severity score (1-10), impact radius (in meters), and authenticity metrics.
-   * **Complaint Generator:** Automatically compiles professional, legal-formatted markdown complaint letters addressed to local municipal officials.
+   * **Complaint Generator:** Automatically compiles professional, legal-formatted plain-text complaint letters addressed to local municipal officials.
 2. **Google Gemini Nano:** Used to generate the high-fidelity branding logo (`assets/logo.png`) representing the platform across the favicon, headers, and Twitter cards.
 3. **Google AI Studio:** Used as the environment to test, refine, and structure the vision prompts and schema structures before porting to code.
 4. **Antigravity IDE (Google DeepMind):** Used as the agentic programming companion to structure the server into a clean MVC architecture, implement Zod validation guards, and verify the backend sweeper logic.
@@ -135,7 +135,7 @@ FixIt leverages a multi-dimensional Google stack across its development lifecycl
 | **Tailwind CSS v4** | Modern component styling and visual customization. |
 | **Zustand** | Light, high-performance state management for issues, filters, and sessions. |
 | **Motion** | Fluid animation library powering the radar and pulse effects. |
-| **react-i18next** | Internationalization module for English and Hindi toggles. |
+| **react-i18next** | Internationalization module for English, Hindi, and Kannada toggles. |
 | **Recharts** | Interactive dashboard visualizations and trend lines. |
 | **Lucide React** | Scalable UI vector icon set. |
 | **Sonner** | Clean Toast notifications for asynchronous events. |
@@ -229,8 +229,8 @@ FixIt uses the browser **Geolocation API** for true geofenced proximity verifica
 ## 🌐 Internationalization (i18n)
 
 To support diverse local communities, FixIt implements complete multi-lingual support via `react-i18next`:
-* **Supported Languages:** English (`en`) and Hindi (`hi`).
-* **Implementation:** The navbar contains a localized toggle button. Localized content is mapped across locale files (e.g. `src/i18n/locales/hi.json` and `hi.json` translation arrays) covering the reporting form, navigation panels, descriptive tooltips, and map markers.
+* **Supported Languages:** English (`en`), Hindi (`hi`), and Kannada (`kn`).
+* **Implementation:** The navbar contains a localized toggle button. Localized content is mapped across locale files (e.g. `src/i18n/locales/en.json`, `src/i18n/locales/hi.json`, and `src/i18n/locales/kn.json`) covering the reporting form, navigation panels, descriptive tooltips, and map markers.
 
 ---
 
@@ -256,7 +256,7 @@ To support diverse local communities, FixIt implements complete multi-lingual su
   * *V1 Approach:* Proximity-locked resolution photo (<50m tolerance) with mandatory citizen verification.
   * *V2 Roadmap:* Machine-learning computer vision models comparing "before" and "after" photos side-by-side to guarantee visual resolution.
 * **No Official Municipal APIs:**
-  * *V1 Approach:* Pre-drafted markdown letters formulated via Gemini and X/Twitter social pressure pipelines.
+  * *V1 Approach:* Pre-drafted plain-text letters formulated via Gemini and X/Twitter social pressure pipelines.
   * *V2 Roadmap:* Direct integrations with national public grievance portals (like CPGRAMS) and WhatsApp Business municipal chatbots.
 
 ---

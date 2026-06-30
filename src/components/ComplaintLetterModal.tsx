@@ -43,39 +43,39 @@ export const ComplaintLetterModal: React.FC<ComplaintLetterModalProps> = ({ issu
       console.error("Grievance letter generation error:", err);
       // Hard fallback matching standard styling
       setComplaintText(`
-**FORMAL CIVIC GRIEVANCE COMPLAINT**
+FORMAL CIVIC GRIEVANCE COMPLAINT
 
-**Date:** ${generatedDate}  
-**To,**  
+Date: ${generatedDate}
+To,
 The Joint Ward Commissioner / Chief Municipal Engineer,  
 Municipal Corporation Division,  
-${issue.location.city}, India.  
+${issue.location.city}, India.
 
-**Subject: URGENT CITIZEN DEMAND - Immediate remediation of ${issue.category.toUpperCase()} hazard at ${issue.location.area}**
+Subject: URGENT CITIZEN DEMAND - Immediate remediation of ${issue.category.toUpperCase()} hazard at ${issue.location.area}
 
-**Respected Sir/Madam,**
+Respected Sir/Madam,
 
-This is an official grievance registered under the **FixIt Community Security Network**. We write to direct your immediate attention to a critical public hazard that poses severe threats to the safety, health, and mobility of residents in this quadrant.
+This is an official grievance registered under the FixIt Community Security Network. We write to direct your immediate attention to a critical public hazard that poses severe threats to the safety, health, and mobility of residents in this quadrant.
 
-**Grievance Specifications:**
-* **Incident Title:** ${issue.title}
-* **Detailed Description:** ${issue.description}
-* **Location Address:** ${issue.location.address}
-* **Assessed Severity Category:** **${issue.severity.toUpperCase()}**
-* **Duration Outstanding:** Unresolved for **${daysUnresolved} days** since official report.
+Grievance Specifications:
+Incident Title: ${issue.title}
+Detailed Description: ${issue.description}
+Location Address: ${issue.location.address}
+Assessed Severity Category: ${issue.severity.toUpperCase()}
+Duration Outstanding: Unresolved for ${daysUnresolved} days since official report.
 
-**Community Verification & Evidence:**
-This report has been actively geofenced-verified on-site by **${issue.verificationCount} registered local citizens** who have attested to its ongoing threat level. Photographic evidence has been verified and registered on our civic ledger.
+Community Verification & Evidence:
+This report has been actively geofenced-verified on-site by ${issue.verificationCount} registered local citizens who have attested to its ongoing threat level. Photographic evidence has been verified and registered on our civic ledger.
 
 The persistence of this hazard represents a direct failure of standard ward maintenance guidelines and creates a high-risk liability for the municipal office under public security safety mandates.
 
-**Required Action:**
-We respectfully demand that a field engineer inspect the site and coordinate an active repair squad within **48 hours** of receiving this grievance.
+Required Action:
+We respectfully demand that a field engineer inspect the site and coordinate an active repair squad within 48 hours of receiving this grievance.
 
 Thank you for your prompt attention to public safety.
 
-**Sincerely,**  
-**Civic Hero Advocate: ${reporterName}**
+Sincerely,
+Civic Hero Advocate: ${reporterName}
       `);
     } finally {
       setLoading(false);

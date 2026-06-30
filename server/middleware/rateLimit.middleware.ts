@@ -20,56 +20,95 @@ export const getClientIp = (req: Request): string => {
 };
 
 /**
- * Standard API Route Rate Limiting (Persistent MongoDB backed).
- * Limits requests per User ID (if logged in) or Client IP.
+ * Reusable persistent route limiter.
+ * Can enforce either a single identity bucket or both account and IP buckets.
  */
-export const generalRateLimiter = (maxRequests = CONFIG.RATE_LIMIT_MAX, windowMs = CONFIG.RATE_LIMIT_WINDOW_MS) => {
+type RateLimitScope = 'identity' | 'identity-and-ip';
+
+export const persistentRateLimiter = (
+  namespace: string,
+  maxRequests: number,
+  windowMs: number,
+  message = "Too many requests. Please slow down.",
+  scope: RateLimitScope = 'identity'
+) => {
   return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const clientIp = getClientIp(req);
       const identifier = req.user?.uid ? `uid_${req.user.uid}` : `ip_${clientIp}`;
-      const key = `rl:gen:${identifier}`;
+      const keys = scope === 'identity-and-ip' && req.user?.uid
+        ? [`rl:${namespace}:uid_${req.user.uid}`, `rl:${namespace}:ip_${clientIp}`]
+        : [`rl:${namespace}:${identifier}`];
 
       const now = new Date();
       const resetAt = new Date(now.getTime() + windowMs);
+      const updatedRecords = [];
 
-      // Find or create rate limit record
-      let record = await RateLimit.findOne({ key });
+      for (const key of keys) {
+        // Find or create rate limit record
+        let record = await RateLimit.findOne({ key });
 
-      if (!record) {
-        // Create new record
-        record = await RateLimit.create({ key, count: 1, resetAt });
-      } else {
-        // If expired (failsafe check if TTL index has delay), reset
-        if (record.resetAt <= now) {
-          record.count = 1;
-          record.resetAt = resetAt;
-          await record.save();
-        } else if (record.count >= maxRequests) {
-          // Send 429 and rate limit headers
-          res.setHeader('Retry-After', Math.ceil((record.resetAt.getTime() - now.getTime()) / 1000));
-          res.status(429).json({
-            error: "Too many requests. Please slow down.",
-            resetTime: record.resetAt
-          });
-          return;
+        if (!record) {
+          // Create new record
+          record = await RateLimit.create({ key, count: 1, resetAt });
         } else {
-          record.count += 1;
-          await record.save();
+          // If expired (failsafe check if TTL index has delay), reset
+          if (record.resetAt <= now) {
+            record.count = 1;
+            record.resetAt = resetAt;
+            await record.save();
+          } else if (record.count >= maxRequests) {
+            // Send 429 and rate limit headers
+            res.setHeader('Retry-After', Math.ceil((record.resetAt.getTime() - now.getTime()) / 1000));
+            res.status(429).json({
+              error: message,
+              resetTime: record.resetAt
+            });
+            return;
+          } else {
+            record.count += 1;
+            await record.save();
+          }
         }
+
+        updatedRecords.push(record);
       }
 
       // Append standard rate-limit headers
+      const tightestRecord = updatedRecords.reduce((lowest, record) => {
+        return record.count > lowest.count ? record : lowest;
+      }, updatedRecords[0]);
+
       res.setHeader('X-RateLimit-Limit', maxRequests);
-      res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - record.count));
-      res.setHeader('X-RateLimit-Reset', Math.ceil(record.resetAt.getTime() / 1000));
+      res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - tightestRecord.count));
+      res.setHeader('X-RateLimit-Reset', Math.ceil(tightestRecord.resetAt.getTime() / 1000));
 
       next();
     } catch (err) {
-      console.error("Rate limiter failure, passing through to prevent API lock:", err);
+      console.error(`${namespace} rate limiter failure, passing through to prevent API lock:`, err);
       next();
     }
   };
+};
+
+/**
+ * Standard API Route Rate Limiting (Persistent MongoDB backed).
+ */
+export const generalRateLimiter = (maxRequests = CONFIG.RATE_LIMIT_MAX, windowMs = CONFIG.RATE_LIMIT_WINDOW_MS) => {
+  return persistentRateLimiter('gen', maxRequests, windowMs);
+};
+
+/**
+ * Tighter quota for Gemini-backed endpoints to protect AI budget.
+ */
+export const aiRateLimiter = (maxRequests = CONFIG.AI_RATE_LIMIT_MAX, windowMs = CONFIG.AI_RATE_LIMIT_WINDOW_MS) => {
+  return persistentRateLimiter(
+    'ai',
+    maxRequests,
+    windowMs,
+    "AI usage limit reached. Please wait before running another Gemini action.",
+    'identity-and-ip'
+  );
 };
 
 /**

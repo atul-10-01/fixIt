@@ -155,11 +155,12 @@ export const aiController = {
 - Location Address: ${location?.address}, Area: ${location?.area}, City: ${location?.city}
 - Days Unresolved: ${unresolvedDays} days since report
 
-Provide a professional, serious, and legally formatted complaint letter in markdown. 
+Provide a professional, serious, and legally formatted complaint letter in plain text.
 The tone should be respectful but demanding urgent structural repair. Reference public safety mandates where appropriate.
 Use the exact Date of Letter and Complainant Name above; do not leave placeholders for date or signature.
 Include a clear subject, salutation, evidence summary, requested action, and signature line.
-Return ONLY the markdown letter text.`;
+Do not use Markdown syntax, asterisks, bullet characters, tables, or code fences.
+Return ONLY the plain-text letter.`;
 
     if (ai) {
       try {
@@ -175,46 +176,46 @@ Return ONLY the markdown letter text.`;
       }
     }
 
-    const letterMarkdown = `
-**FORMAL CIVIC GRIEVANCE COMPLAINT**
+    const letterText = `
+FORMAL CIVIC GRIEVANCE COMPLAINT
 
-**Date:** ${letterDate}  
-**To,**  
+Date: ${letterDate}
+To,
 The Joint Ward Commissioner / Chief Municipal Engineer,  
 Municipal Corporation Division,  
-${location?.city || "City Municipal Ward"}, India.  
+${location?.city || "City Municipal Ward"}, India.
 
-**Subject: URGENT CITIZEN DEMAND - Immediate remediation of ${category?.toUpperCase()} hazard at ${location?.area || "Local Area"}**
+Subject: URGENT CITIZEN DEMAND - Immediate remediation of ${category?.toUpperCase()} hazard at ${location?.area || "Local Area"}
 
-**Respected Sir/Madam,**
+Respected Sir/Madam,
 
-This is an official grievance registered under the **FixIt Community Security Network**. We write to direct your immediate attention to a critical public hazard that poses severe threats to the safety, health, and mobility of residents in this quadrant.
+This is an official grievance registered under the FixIt Community Security Network. We write to direct your immediate attention to a critical public hazard that poses severe threats to the safety, health, and mobility of residents in this quadrant.
 
-**Grievance Specifications:**
-* **Incident Title:** ${title || "Public Safety Risk"}
-* **Detailed Description:** ${description || "No description provided."}
-* **Location Address:** ${location?.address || "Unknown Road"}
-* **Assessed Severity Category:** **${severity?.toUpperCase() || "HIGH"}**
-* **Duration Outstanding:** Unresolved for **${unresolvedDays} days** since official report.
+Grievance Specifications:
+Incident Title: ${title || "Public Safety Risk"}
+Detailed Description: ${description || "No description provided."}
+Location Address: ${location?.address || "Unknown Road"}
+Assessed Severity Category: ${severity?.toUpperCase() || "HIGH"}
+Duration Outstanding: Unresolved for ${unresolvedDays} days since official report.
 
-**Community Verification & Evidence:**
-This report is not an isolated complaint. It has been actively geofenced-verified on-site by **${verificationCount || 5} registered local citizens** who have attested to its ongoing threat level. Photographic evidence has been verified and registered on our civic ledger.
+Community Verification & Evidence:
+This report is not an isolated complaint. It has been actively geofenced-verified on-site by ${verificationCount || 5} registered local citizens who have attested to its ongoing threat level. Photographic evidence has been verified and registered on our civic ledger.
 
 The persistence of this hazard represents a direct failure of standard ward maintenance guidelines and creates a high-risk liability for the municipal office under public security safety mandates. 
 
-**Required Action:**
-We respectfully demand that a field engineer inspect the site and coordinate an active repair squad within **48 hours** of receiving this grievance. 
+Required Action:
+We respectfully demand that a field engineer inspect the site and coordinate an active repair squad within 48 hours of receiving this grievance. 
 
 Failure to act will result in this complaint being escalated directly to the state grievance division and shared with local media and resident welfare associations to ensure institutional accountability.
 
 Thank you for your prompt attention to public safety.
 
-**Sincerely,**  
-**Civic Hero Advocate: ${complainantName}**  
-*On behalf of the ${location?.area || "Koramangala"} Resident Collective*  
-*CC: Ward Sanitation & Infrastructure Council*
+Sincerely,
+Civic Hero Advocate: ${complainantName}
+On behalf of the ${location?.area || "Koramangala"} Resident Collective
+CC: Ward Sanitation & Infrastructure Council
     `;
 
-    res.json({ text: letterMarkdown.trim() });
+    res.json({ text: letterText.trim() });
   }
 };
