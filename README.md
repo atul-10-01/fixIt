@@ -9,22 +9,6 @@
 > > * **Google Sign-In Experience**: To prevent browser redirection to Render's raw "Service is spinning up" build log page, the frontend will intercept the click, display a loading toast ("Waking servers..."), and ping the backend. As soon as the server is fully awake, you will be redirected to the Google Auth page instantly.
 
 
-> [!NOTE]
-> **CI/CD Pipeline Note (GitHub Actions shows red X but deployment succeeds):**
-> The GitHub Actions workflow will report a failed status on every push to main. This is a **confirmed regression in firebase-tools** where the CLI makes a redundant release API call after a successful deploy, causing a false FAILED_PRECONDITION 400 error. The deployment **does succeed** — every push to main is live at [https://fixit-500719.web.app](https://fixit-500719.web.app). We deliberately avoided `continue-on-error: true` as a workaround, as it would silently mask genuine deployment failures in the future.
-
----
-
-## 🚀 Live Deployments
-
-* **Frontend Web App (Google Cloud Hosted):** [https://fixit-500719.web.app](https://fixit-500719.web.app)
-* **Backend API Service:** [https://fixit-api.onrender.com](https://fixit-api.onrender.com)
-
-### 🏗️ Split-Domain Deployment Architecture
-To secure a Google Cloud hosted domain while avoiding cloud-billing card authentication issues (due to international payment blocks on standard bank accounts), FixIt is deployed in a hybrid state:
-* **Frontend Web App:** Hosted on **Firebase Hosting** (Google Cloud CDN), providing a fast, secure, and HTTPS-encrypted `*.web.app` endpoint.
-* **Backend API Server:** Hosted on **Render.com** (Native Node.js runtime) connecting to a remote MongoDB Atlas database.
-* **Cross-Origin Auth:** Uses standard `Authorization: Bearer <token>` headers to bypass cross-domain third-party cookie restrictions enforced by modern browsers.
 
 ---
 
