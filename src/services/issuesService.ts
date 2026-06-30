@@ -39,6 +39,7 @@ export const issuesService = {
     location: any;
     daysUnresolved: number;
     reporterName: string;
+    generatedDate: string;
   }): Promise<GenerateComplaintResponse> => {
     const response = await api.post<GenerateComplaintResponse>('/api/generate-complaint', params);
     return response.data;

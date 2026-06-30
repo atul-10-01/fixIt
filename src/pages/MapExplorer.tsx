@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useIssuesStore } from '../store/useIssuesStore';
-import { MapCanvas } from '../components/MapCanvas';
+import { MapCanvas, MapCity } from '../components/MapCanvas';
 import { IssueDetailPanel } from '../components/features/IssueDetailPanel';
 
 export function MapExplorer() {
@@ -35,6 +35,7 @@ export function MapExplorer() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [mapCity, setMapCity] = useState<MapCity>('Bengaluru');
 
   const filteredIssues = issues.filter(issue => {
     if (filterCategory !== 'all' && issue.category !== filterCategory) return false;
@@ -51,6 +52,7 @@ export function MapExplorer() {
   });
 
   const activeIssue = issues.find(i => i.id === selectedIssueId);
+  const activeCityIssueCount = issues.filter(i => i.location.city === mapCity).length;
 
   return (
     <div className="flex-grow p-6 max-w-7xl mx-auto w-full flex flex-col gap-6">
@@ -60,8 +62,10 @@ export function MapExplorer() {
           <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Hyperlocal Grid Coordinate Radar</h2>
         </div>
         <div className="text-right">
-          <span className="text-[9px] text-zinc-500 font-black uppercase block tracking-widest">Active Incident Indicators</span>
-          <span className="text-xl font-mono font-black text-white">{issues.filter(i => i.location.city === 'Bengaluru').length} Bangalore Quadrants</span>
+          <span className="text-[9px] text-zinc-400 font-black uppercase block tracking-widest">Active Incident Indicators</span>
+          <span className="text-xl font-mono font-black text-white">
+            {activeCityIssueCount} {mapCity} Incidents
+          </span>
         </div>
       </div>
 
@@ -107,13 +111,14 @@ export function MapExplorer() {
           <MapCanvas 
             selectedIssueId={selectedIssueId || undefined} 
             onSelectIssue={(id) => setSelectedIssueId(id)}
+            onCityChange={setMapCity}
             userLat={userLat}
             userLng={userLng}
           />
         </div>
 
         {/* Side Floating details feed */}
-        <div className="lg:col-span-4 flex flex-col gap-4 max-h-[550px] overflow-y-auto border border-zinc-800 p-4 rounded-lg bg-zinc-950">
+        <div className="lg:col-span-4 flex flex-col gap-4 max-h-[550px] overflow-y-auto border border-zinc-800 p-4 rounded-lg bg-zinc-950 dark-scrollbar">
           <h3 className="text-xs font-black uppercase tracking-widest text-zinc-300 pb-3 border-b border-zinc-900">
             Filtered Pins Stream ({filteredIssues.length})
           </h3>
@@ -123,7 +128,7 @@ export function MapExplorer() {
               No active coordinates found for filter set.
             </div>
           ) : (
-            <div className="space-y-3 flex-grow overflow-y-auto">
+            <div className="space-y-3 flex-grow overflow-y-auto dark-scrollbar pr-1">
               {filteredIssues.map(issue => (
                 <div 
                   key={issue.id}

@@ -71,3 +71,27 @@ body {
   scrollbar-width: none;  /* Firefox */
 }
 
+/* Dark scrollbar treatment for scrollable panels on dark surfaces */
+.dark-scrollbar {
+  scrollbar-color: #52525b #09090b;
+  scrollbar-width: thin;
+}
+
+.dark-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #52525b;
+  border-radius: 9999px;
+  border: 2px solid #09090b;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #71717a;
+}
+

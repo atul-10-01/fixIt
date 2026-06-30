@@ -4,7 +4,7 @@
 
 > [!IMPORTANT]
 > **Demo / Hackathon Evaluation Note:** 
-> Since the backend API server is hosted on Render's free tier, the backend service automatically spins down (goes to sleep) after 15 minutes of inactivity. On the first server call (such as loading issues, submitting a report, or clicking **Sign In with Google**), the server may take **10 to 15 seconds to wake up (cold-start)**.
+> Since the backend API server is hosted on Render's free tier, the backend service automatically spins d own (goes to sleep) after 15 minutes of inactivity. On the first server call (such as loading issues, submitting a report, or clicking **Sign In with Google**), the server may take **10 to 15 seconds to wake up (cold-start)**.
 > 
 > > * **Google Sign-In Experience**: To prevent browser redirection to Render's raw "Service is spinning up" build log page, the frontend will intercept the click, display a loading toast ("Waking servers..."), and ping the backend. As soon as the server is fully awake, you will be redirected to the Google Auth page instantly.
 
@@ -64,28 +64,50 @@ FixIt bypasses this hurdle by transforming verified local issues into public soc
 ### 1. The Interactive Dashboard & Live Feed
 *Displays the split hero visual, real-time statistics, and the hyperlocal live feeds calculated relative to the citizen's GPS coordinates.*
 <!-- [SCREENSHOT: Landing Page & Live Activity Feed] -->
-`[Insert Screenshot: Landing Page showing main Hero, Mission Blueprint, and Live Activity Feed]`
+![Landing Page showing main Hero, Mission Blueprint, and Live Activity Feed](assets/landing-page.png)
 
 ### 2. Multi-Step AI Reporting Wizard
 *Allows users to upload photos, trigger Gemini-powered analysis, view diagnostic metadata, and submit reports bound directly to device coordinates.*
 <!-- [SCREENSHOT: AI Image Scanner & Report Form] -->
-`[Insert Screenshot: AI Reporting Wizard displaying image upload, severity score, and automated tags]`
+| AI Reporting Wizard | AI Reporting Step 2 |
+| --- | --- |
+| ![AI Reporting Wizard displaying image upload, severity score, and automated tags](assets/multi-step-report-1.png) | ![AI Reporting Wizard step 2 displaying audit results and generated report details](assets/multi-step-report-2.png) |
 
 ### 3. Interactive Map Explorer
 *A detailed view of the community with color-coded incident pins pulsing in real time. Hotspots and chronic zone bounds are highlighted.*
 <!-- [SCREENSHOT: Map Explorer page] -->
-`[Insert Screenshot: Map Explorer displaying active incident pins, search filters, and chronic zones]`
+![Map Explorer displaying active incident pins, search filters, and chronic zones](assets/map-view.png)
 
 ### 4. Admin Command Panel & Agent Sweeps
 *The command center where administrators can inspect active logs, trigger automated sweeps, and reset the demo database.*
 <!-- [SCREENSHOT: Admin Panel with sweep logs] -->
-`[Insert Screenshot: Admin Command Panel showing execution logs, duplicate merges, and auto-escalations]`
+![Admin Command Panel showing execution logs, duplicate merges, and auto-escalations](<assets/agent sweep.png>)
 
 ### 5. Gamified Citizen Leaderboard
 *Displays the top-performing civic helpers in the community, sanitizing all sensitive details like email addresses before listing profiles.*
 <!-- [SCREENSHOT: Leaderboard ranks] -->
-`[Insert Screenshot: Leaderboard page showing points, level titles, and Pioneer badges]`
+![Leaderboard page showing points, level titles, and Pioneer badges](assets/leaderboard.png)
 
+---
+
+## 📈 Google PageSpeed Insights Validation
+
+FixIt was optimized and validated through **Google PageSpeed Insights** to ensure the civic reporting experience remains fast, accessible, discoverable, and agent-friendly across desktop and mobile conditions. The production build was tuned with Firebase Hosting cache/security headers, route-level JavaScript splitting, reduced render-blocking resources, system font stacks instead of remote font downloads, smaller responsive image URLs, valid crawler files (`robots.txt`, `sitemap.xml`), and an `llms.txt` file for agentic browsing.
+
+Latest PageSpeed snapshot from **June 30, 2026, 12:14 AM**:
+
+| Experience | Performance | Accessibility | Best Practices | SEO | Agentic Browsing |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Desktop** | **99** | **96** | **96** | **100** | **3/3** |
+| **Mobile** | **97** | **96** | **96** | **100** | **3/3** |
+
+<!-- [SCREENSHOT: Google PageSpeed Insights Desktop Scores] -->
+| Desktop PageSpeed | Mobile PageSpeed |
+| --- | --- |
+| ![PageSpeed Insights desktop report showing 99 Performance, 96 Accessibility, 96 Best Practices, 100 SEO, and 3/3 Agentic Browsing](assets/web-data.png) | ![PageSpeed Insights mobile report showing 97 Performance, 96 Accessibility, 96 Best Practices, 100 SEO, and 3/3 Agentic Browsing](assets/mobile-data.png) |
+
+<!-- [SCREENSHOT: Google PageSpeed Insights Mobile Scores] -->
+ 
 ---
 
 ## 💡 Google Technologies Utilized
@@ -99,7 +121,7 @@ FixIt leverages a multi-dimensional Google stack across its development lifecycl
 3. **Google AI Studio:** Used as the environment to test, refine, and structure the vision prompts and schema structures before porting to code.
 4. **Antigravity IDE (Google DeepMind):** Used as the agentic programming companion to structure the server into a clean MVC architecture, implement Zod validation guards, and verify the backend sweeper logic.
 5. **Firebase Hosting:** Used for static web app delivery, serving the pre-compiled frontend assets securely from Google Cloud edges.
-6. **Google Fonts:** Plus Jakarta Sans, Inter, and JetBrains Mono fonts integrated into the styling system.
+6. **Google PageSpeed Insights:** Used to validate production performance, accessibility, best practices, SEO, and agentic browsing quality across desktop and mobile audits.
 
 ---
 
@@ -246,20 +268,50 @@ Use these steps to test the live application directly:
 ### Step 1: Open the Application
 Navigate to the hosted URL: **[https://fixit-500719.web.app](https://fixit-500719.web.app)**.
 
-### Step 2: Test AI Image Diagnostics & Reporting
+### Step 2: Test GPS Onboarding & City Targeting
+1. On first load, review the GPS permission explanation modal.
+2. Either allow live GPS access or select a fallback city.
+3. Open the **Map** tab and change the **Target Quadrant** selector between Bengaluru, Mumbai, Delhi, Gurgaon, and Noida.
+4. Confirm that the active incident counter updates for the selected city and the map recenters to that local grid.
+
+### Step 3: Test AI Image Diagnostics & Reporting
 1. Navigate to the **Report** tab in the navigation bar.
 2. Grant browser location permissions when prompted.
 3. Upload an image representing a civic hazard (e.g., a pothole or damaged streetlight).
 4. Click **Analyze Image**. Google Gemini 2.5 Flash will automatically detect the issue title, category, severity, and suggested municipal authority.
 5. Complete the rest of the form (choose to submit anonymously or publicly) and click **Report Hazard**.
 
-### Step 3: Test Geofenced Proximity Verification
+### Step 4: Test Issue Inspection, AI Audit & Municipal Complaint Generation
+1. Open an incident from the **Dashboard** live feed, **Incidents** stream, or **Map** pin.
+2. Review the **Gemini AI Audit Properties** card showing authenticity reasoning, confidence, impact radius, suggested authority, and estimated resolution time.
+3. Click **[Generate Municipal Complaint]**.
+4. Click **Assemble Letter via Gemini AI**. FixIt will generate a formal municipal complaint using the issue title, location, severity, verification count, unresolved duration, current generation date, and known reporter name (or protected anonymous citizen label).
+5. Use **Copy Letter Text** or **Download .txt File** to export the complaint for email, print, or civic escalation.
+
+### Step 5: Test Geofenced Proximity Verification
 1. Navigate to the **Map** tab and click on an active issue pin, or select an issue from the live feed on the **Dashboard**.
 2. If your browser location is within 500 meters of the issue coordinate, the **Verify Proximity** button will unlock. 
 3. Click it to cast a physical verification. This awards you **5 points** and increments the issue's community verification index.
 4. Try to verify your own submitted issue — the server will flag the session ID match and block the operation.
 
-### Step 4: Admin Mode & Sweeper Execution
+### Step 6: Test Social Amplification & Citizen Action
+1. Open a verified or self-reported incident.
+2. Click **Share To Amplify** to preview a city-specific X/Twitter escalation message with the municipal handle, issue title, severity, coordinates, and campaign tags.
+3. Try the **Adopt This Incident** widget by entering a Resident Welfare Association, NGO, or local business name and clicking **Adopt**.
+4. Use the feedback thread to add a citizen update or observation.
+
+### Step 7: Test Resolution Proof Flow
+1. Open an unresolved issue.
+2. If your simulated/current GPS position is within 50 meters of the issue, the remediation proof upload unlocks.
+3. Upload a resolution photo and click **Certify Resolution Proof**.
+4. For resolved issues, review the before/after comparison slider.
+
+### Step 8: Test Leaderboard, Profile & Legal Aid
+1. Open **Leaderboard** to review public, sanitized citizen ranking data without private emails or database IDs.
+2. Open **Profile** to review current user points, badges, contribution stats, and Google sign-in entry point.
+3. Click **Need Help?** in the bottom-left floating legal aid widget to view safety resources, helpline actions, and anonymous threat-reporting support.
+
+### Step 9: Admin Mode & Sweeper Execution
 1. In the header bar, click the simulation button: **[CITIZEN MODE]**. It will switch your active DB record to **[ADMIN MODE]**.
 2. Navigate to the newly unlocked **Admin** tab.
 3. Observe the three core sweeper rules available to run:
@@ -268,7 +320,7 @@ Navigate to the hosted URL: **[https://fixit-500719.web.app](https://fixit-50071
    * **Auto-Escalation:** Escalates unresolved high-severity reports outstanding for >48 hours.
 4. Click **Run Sweeper**. Review the audit trail log printed at the bottom of the page showing the changes made to the database.
 
-### Step 5: Test the Session-Safe Reset
+### Step 10: Test the Session-Safe Reset
 1. While still on the **Admin** panel, click **Reset Demo Database**.
 2. This triggers a server-side wipe and re-seed of all collections (57 default issues across 5 major Indian cities) but preserves your current session token. 
 3. Observe that you remain fully authenticated and your admin role state is maintained.

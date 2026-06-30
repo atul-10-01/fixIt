@@ -4,9 +4,12 @@ import { useIssuesStore } from '../store/useIssuesStore';
 import { Shield, AlertTriangle, Crosshair, ZoomIn, ZoomOut, Search, MapPin } from 'lucide-react';
 import { CITY_CENTERS } from '../utils/seedData';
 
+export type MapCity = keyof typeof CITY_CENTERS;
+
 interface MapCanvasProps {
   selectedIssueId?: string;
   onSelectIssue?: (issueId: string) => void;
+  onCityChange?: (city: MapCity) => void;
   interactiveSelectCoordinate?: (lat: number, lng: number, address: string) => void;
   isSelectingCoordinate?: boolean;
   userLat?: number;
@@ -16,6 +19,7 @@ interface MapCanvasProps {
 export const MapCanvas: React.FC<MapCanvasProps> = ({
   selectedIssueId,
   onSelectIssue,
+  onCityChange,
   interactiveSelectCoordinate,
   isSelectingCoordinate = false,
   userLat,
@@ -24,22 +28,27 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const issues = useIssuesStore((state) => state.issues);
   const warRoomActive = useIssuesStore((state) => state.warRoomActive);
   const warRoomArea = useIssuesStore((state) => state.warRoomArea);
-  const [selectedCity, setSelectedCity] = useState<'Bengaluru' | 'Mumbai' | 'Delhi' | 'Gurgaon' | 'Noida'>('Bengaluru');
+  const [selectedCity, setSelectedCity] = useState<MapCity>('Bengaluru');
+
+  const updateSelectedCity = (city: MapCity) => {
+    setSelectedCity(city);
+    onCityChange?.(city);
+  };
 
   // Auto-select city center closest to user's resolved coordinates on mount / update
   useEffect(() => {
     if (userLat && userLng) {
       // Find closest city
-      let closestCity: 'Bengaluru' | 'Mumbai' | 'Delhi' | 'Gurgaon' | 'Noida' = 'Bengaluru';
+      let closestCity: MapCity = 'Bengaluru';
       let closestDist = Infinity;
       for (const [cityName, center] of Object.entries(CITY_CENTERS)) {
         const dist = Math.sqrt(Math.pow(userLat - center.lat, 2) + Math.pow(userLng - center.lng, 2));
         if (dist < closestDist) {
           closestDist = dist;
-          closestCity = cityName as any;
+          closestCity = cityName as MapCity;
         }
       }
-      setSelectedCity(closestCity);
+      updateSelectedCity(closestCity);
     }
   }, [userLat, userLng]);
 
@@ -67,11 +76,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   useEffect(() => {
     if (warRoomActive) {
       if (warRoomArea.toLowerCase().includes("bandra") || warRoomArea === "Mumbai") {
-        setSelectedCity("Mumbai");
+        updateSelectedCity("Mumbai");
       } else if (warRoomArea.toLowerCase().includes("saket") || warRoomArea === "Delhi") {
-        setSelectedCity("Delhi");
+        updateSelectedCity("Delhi");
       } else {
-        setSelectedCity("Bengaluru");
+        updateSelectedCity("Bengaluru");
       }
     }
   }, [warRoomActive, warRoomArea]);
@@ -82,9 +91,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       const issue = issues.find(i => i.id === selectedIssueId);
       if (issue) {
         // Change city if necessary
-        const issueCity = issue.location.city as 'Bengaluru' | 'Mumbai' | 'Delhi';
+        const issueCity = issue.location.city as MapCity;
         if (issueCity && CITY_CENTERS[issueCity]) {
-          setSelectedCity(issueCity);
+          updateSelectedCity(issueCity);
         }
         
         // Calculate coordinate position inside map local layout, center on it
@@ -188,7 +197,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         const streetNames = {
           Bengaluru: ["80 Feet Road", "100 Feet Road", "ST Bed Road", "HSR Boulevard"],
           Mumbai: ["Carter Road", "Linking Road", "Pali Hill Extension", "Juhu Lane"],
-          Delhi: ["Saket Walkway", "Vasant Marg", "D-Block Avenue", "Mehrauli Sector Road"]
+          Delhi: ["Saket Walkway", "Vasant Marg", "D-Block Avenue", "Mehrauli Sector Road"],
+          Gurgaon: ["Cyber City Loop", "Golf Course Road", "Sohna Access Road", "DLF Phase 4 Main"],
+          Noida: ["Sector 18 Market Road", "Film City Road", "Expressway Link", "Atta Market Lane"]
         };
         const streetName = streetNames[selectedCity][Math.floor(Math.random() * 4)];
         const generatedAddress = `${streetNo}, ${streetName}, ${cityCenter.name}, ${selectedCity}`;
@@ -289,7 +300,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           <select 
             value={selectedCity} 
             onChange={(e) => {
-              setSelectedCity(e.target.value as any);
+              updateSelectedCity(e.target.value as MapCity);
               handleResetPan();
             }}
             disabled={warRoomActive}

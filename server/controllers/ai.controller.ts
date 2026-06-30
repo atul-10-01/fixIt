@@ -139,19 +139,27 @@ export const aiController = {
 
   // Formal complaint letter formulation
   generateComplaint: async (req: Request, res: Response) => {
-    const { title, description, category, severity, verificationCount, location, daysUnresolved, reporterName } = req.body;
+    const { title, description, category, severity, verificationCount, location, daysUnresolved, reporterName, generatedDate } = req.body;
+    const letterDate = generatedDate || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    const complainantName = reporterName || "Anonymous Citizen";
+    const unresolvedDays = daysUnresolved || 3;
 
     const promptText = `Write an official municipal complaint letter to the ward commissioner or city magistrate regarding a civic issue with the following details:
+- Date of Letter: ${letterDate}
+- Complainant Name: ${complainantName}
 - Issue Title: ${title}
 - Description: ${description}
 - Category: ${category}
 - Severity: ${severity}
 - Verification Count: ${verificationCount} citizens verified this
 - Location Address: ${location?.address}, Area: ${location?.area}, City: ${location?.city}
-- Days Unresolved: ${daysUnresolved || 3} days since report
+- Days Unresolved: ${unresolvedDays} days since report
 
 Provide a professional, serious, and legally formatted complaint letter in markdown. 
-The tone should be respectful but demanding urgent structural repair. Reference DPDP compliance or public safety mandates where appropriate. Include proper placeholders for signing, salutation, date, and subject. Return ONLY the markdown letter text.`;
+The tone should be respectful but demanding urgent structural repair. Reference public safety mandates where appropriate.
+Use the exact Date of Letter and Complainant Name above; do not leave placeholders for date or signature.
+Include a clear subject, salutation, evidence summary, requested action, and signature line.
+Return ONLY the markdown letter text.`;
 
     if (ai) {
       try {
@@ -170,7 +178,7 @@ The tone should be respectful but demanding urgent structural repair. Reference 
     const letterMarkdown = `
 **FORMAL CIVIC GRIEVANCE COMPLAINT**
 
-**Date:** ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}  
+**Date:** ${letterDate}  
 **To,**  
 The Joint Ward Commissioner / Chief Municipal Engineer,  
 Municipal Corporation Division,  
@@ -187,7 +195,7 @@ This is an official grievance registered under the **FixIt Community Security Ne
 * **Detailed Description:** ${description || "No description provided."}
 * **Location Address:** ${location?.address || "Unknown Road"}
 * **Assessed Severity Category:** **${severity?.toUpperCase() || "HIGH"}**
-* **Duration Outstanding:** Unresolved for **${daysUnresolved || 4} days** since official report.
+* **Duration Outstanding:** Unresolved for **${unresolvedDays} days** since official report.
 
 **Community Verification & Evidence:**
 This report is not an isolated complaint. It has been actively geofenced-verified on-site by **${verificationCount || 5} registered local citizens** who have attested to its ongoing threat level. Photographic evidence has been verified and registered on our civic ledger.
@@ -202,7 +210,7 @@ Failure to act will result in this complaint being escalated directly to the sta
 Thank you for your prompt attention to public safety.
 
 **Sincerely,**  
-**Civic Hero Advocate: ${reporterName || "Anonymous Citizen"}**  
+**Civic Hero Advocate: ${complainantName}**  
 *On behalf of the ${location?.area || "Koramangala"} Resident Collective*  
 *CC: Ward Sanitation & Infrastructure Council*
     `;

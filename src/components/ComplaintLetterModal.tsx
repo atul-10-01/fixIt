@@ -15,6 +15,10 @@ export const ComplaintLetterModal: React.FC<ComplaintLetterModalProps> = ({ issu
   const [copied, setCopied] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
+  const reporterName = issue.anonymous ? `Anonymous Citizen #${issue.id.slice(-4)}` : issue.reportedByName;
+  const generatedDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  const daysUnresolved = Math.max(1, Math.floor((Date.now() - new Date(issue.reportedAt).getTime()) / (3600 * 24 * 1000)));
+
   const generateLetter = async () => {
     setLoading(true);
     setDownloaded(false);
@@ -28,8 +32,9 @@ export const ComplaintLetterModal: React.FC<ComplaintLetterModalProps> = ({ issu
         severity: issue.severity,
         verificationCount: issue.verificationCount,
         location: issue.location,
-        daysUnresolved: Math.max(1, Math.floor((Date.now() - new Date(issue.reportedAt).getTime()) / (3600 * 24 * 1000))),
-        reporterName: issue.anonymous ? `Anonymous Citizen #${issue.id.slice(-4)}` : issue.reportedByName
+        daysUnresolved,
+        reporterName,
+        generatedDate
       });
 
       const parsedData = complaintResponseSchema.parse(data);
@@ -40,7 +45,7 @@ export const ComplaintLetterModal: React.FC<ComplaintLetterModalProps> = ({ issu
       setComplaintText(`
 **FORMAL CIVIC GRIEVANCE COMPLAINT**
 
-**Date:** ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}  
+**Date:** ${generatedDate}  
 **To,**  
 The Joint Ward Commissioner / Chief Municipal Engineer,  
 Municipal Corporation Division,  
@@ -57,7 +62,7 @@ This is an official grievance registered under the **FixIt Community Security Ne
 * **Detailed Description:** ${issue.description}
 * **Location Address:** ${issue.location.address}
 * **Assessed Severity Category:** **${issue.severity.toUpperCase()}**
-* **Duration Outstanding:** Unresolved for days since official report.
+* **Duration Outstanding:** Unresolved for **${daysUnresolved} days** since official report.
 
 **Community Verification & Evidence:**
 This report has been actively geofenced-verified on-site by **${issue.verificationCount} registered local citizens** who have attested to its ongoing threat level. Photographic evidence has been verified and registered on our civic ledger.
@@ -70,7 +75,7 @@ We respectfully demand that a field engineer inspect the site and coordinate an 
 Thank you for your prompt attention to public safety.
 
 **Sincerely,**  
-**Civic Hero Advocate: ${issue.anonymous ? `Anonymous Citizen #${issue.id.slice(-4)}` : issue.reportedByName}**
+**Civic Hero Advocate: ${reporterName}**
       `);
     } finally {
       setLoading(false);
